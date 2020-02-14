@@ -47,4 +47,7 @@ dependencies {
 
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.14.0"
     implementation "com.offbytwo:docopt:0.6.0.20150202"
+    implementation "com.goterl.lazycode:lazysodium-android:4.1.0@aar"
+    implementation "net.java.dev.jna:jna:4.5.1@aar"
+    //compile 'co.libly:resource-loader:1.3.5'
 }
