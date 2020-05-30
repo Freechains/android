@@ -30,14 +30,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         fsRoot = applicationContext.filesDir.toString()
-
-        //val pd = ProgressDialog(this)
-        //pd.setMessage("Loading Freechains...")
-        //pd.setCancelable(false)
-        //pd.show()
+        //println(fsRoot)
 
         val list = findViewById<View>(R.id.list)
-        val wait = findViewById<View>(R.id.progressBar)
+        val wait = findViewById<View>(R.id.wait)
 
         list.visibility = View.INVISIBLE
         wait.visibility = View.VISIBLE
@@ -49,9 +45,8 @@ class MainActivity : AppCompatActivity() {
             thread {
                 this.start()
             }
-            //Thread.sleep(5000)
+            Thread.sleep(500)
             this.runOnUiThread {
-                //pd.dismiss()
                 wait.visibility = View.INVISIBLE
                 list.visibility = View.VISIBLE
             }
@@ -75,14 +70,20 @@ class MainActivity : AppCompatActivity() {
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes,
                 DialogInterface.OnClickListener { _, _ ->
-                    val progressBar = findViewById<View>(R.id.progressBar)
-                    progressBar.visibility = View.VISIBLE
+                    val list = findViewById<View>(R.id.list)
+                    val wait = findViewById<View>(R.id.wait)
+                    list.visibility = View.INVISIBLE
+                    wait.visibility = View.VISIBLE
 
                     thread {
                         this.reset()
-                        Thread.sleep(5000)
+                        thread {
+                            this.start()
+                        }
+                        Thread.sleep(500)
                         this.runOnUiThread {
-                            progressBar.visibility = View.INVISIBLE
+                            wait.visibility = View.INVISIBLE
+                            list.visibility = View.VISIBLE
                             Toast.makeText(
                                 this@MainActivity,
                                 "Freechains reset OK!",
