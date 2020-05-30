@@ -4,25 +4,24 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import java.io.File
 import kotlin.concurrent.thread
 import org.freechains.common.main
 import org.freechains.platform.fsRoot
-
-import io.reactivex.rxjava3.kotlin.subscribeBy
-import io.reactivex.rxjava3.kotlin.toObservable
 
 const val EXTRA_MESSAGE = "org.freechains.android.MESSAGE"
 
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+/*
         //File("xxx.txt").writeText("testando 123\n")
         //File("/chico/xxx.txt").writeText("testando 123\n")
         //File("chico/xxx.txt").writeText("testando 123\n")
-/*
-        fsRoot = applicationContext.filesDir.toString()
-        println(fsRoot)
+import java.io.File
+import io.reactivex.rxjava3.kotlin.subscribeBy
+import io.reactivex.rxjava3.kotlin.toObservable
 
         File(fsRoot!!, "test.txt").bufferedWriter().use {
             it.write("teste 1")
@@ -42,18 +41,19 @@ class MainActivity : AppCompatActivity() {
                 onError =  { it.printStackTrace() },
                 onComplete = { println("Done!") }
             )
+*/
 
-        main(arrayOf("host","create","/freechains/"))
+        fsRoot = applicationContext.filesDir.toString()
+        println(fsRoot)
+        main(arrayOf("host","create","/data/"))
         thread {
-            main(arrayOf("host","start","/freechains/"))
+            main(arrayOf("host","start","/data/"))
         }
         thread {
             Thread.sleep(100)
             main(arrayOf("chains","join","/"))
+            main(arrayOf("chains","join","/mail"))
         }
-*/
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
     }
 
     fun onClick_Hosts (view: View) {
