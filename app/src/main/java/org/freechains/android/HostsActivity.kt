@@ -6,57 +6,25 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.widget.*
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UnstableDefault
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import org.freechains.common.*
-import org.freechains.platform.fsRoot
 import java.io.File
-import kotlin.concurrent.thread
-
-val PATH = fsRoot!! + "/" + "hosts"
-
-@Serializable
-data class Hosts (
-    val list: ArrayList<String>
-)
-
-fun Hosts.toJson () : String {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(Hosts.serializer(), this)
-}
-
-fun String.fromJsonToHosts () : Hosts {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.parse(Hosts.serializer(), this)
-}
 
 class HostsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
-
-        val file = File(PATH)
-        if (!file.exists()) {
-            file.writeText(Hosts(arrayListOf()).toJson())
-        }
-
         this.update()
     }
 
     fun update () {
-        val hosts = File(PATH).readText().fromJsonToHosts()
+        val hosts = File(LOCAL()).readText().fromJsonToHosts()
 
         val list = findViewById<ListView>(R.id.list)
         list.setAdapter (
             ArrayAdapter<String> (
                 this,
                 android.R.layout.simple_list_item_1,
-                listOf("Add host...") + hosts.list
+                listOf("Add host...") + hosts.hosts
             )
         )
         list.setOnItemClickListener { parent, view, position, id ->
@@ -84,9 +52,9 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            val hosts = File(PATH).readText().fromJsonToHosts()
-            hosts.list.add(input.text.toString())
-            File(PATH).writeText(hosts.toJson())
+            val hosts = File(LOCAL()).readText().fromJsonToHosts()
+            hosts.hosts.add(input.text.toString())
+            File(LOCAL()).writeText(hosts.toJson())
             this.update()
         }
 

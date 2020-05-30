@@ -1,19 +1,47 @@
 package org.freechains.android
 
 import android.app.AlertDialog
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UnstableDefault
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.main
 import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
 
+fun LOCAL () : String {
+    val path = fsRoot!! + "/" + "local.json"
 
-const val EXTRA_MESSAGE = "org.freechains.android.MESSAGE"
+    val file = File(path)
+    if (!file.exists()) {
+        file.writeText(Local(arrayListOf()).toJson())
+    }
+
+    return path
+}
+
+@Serializable
+data class Local (
+    val hosts: ArrayList<String>
+)
+
+fun Local.toJson () : String {
+    @UseExperimental(UnstableDefault::class)
+    val json = Json(JsonConfiguration(prettyPrint=true))
+    return json.stringify(Local.serializer(), this)
+}
+
+fun String.fromJsonToHosts () : Local {
+    @UseExperimental(UnstableDefault::class)
+    val json = Json(JsonConfiguration(prettyPrint=true))
+    return json.parse(Local.serializer(), this)
+}
 
 class MainActivity : AppCompatActivity() {
 
