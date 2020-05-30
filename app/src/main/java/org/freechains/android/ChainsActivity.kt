@@ -16,27 +16,33 @@ class ChainsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chains)
 
-        val progressBar = findViewById<View>(R.id.progressBar)
-        progressBar.visibility = View.VISIBLE
+        val list = findViewById<ListView>(R.id.list)
+        val wait = findViewById<View>(R.id.wait)
+        list.visibility = View.INVISIBLE
+        wait.visibility = View.VISIBLE
 
         thread {
-            val chains = main_(arrayOf("chains","list")).split(' ')
-            Thread.sleep(5000)
+            val chains = main_(arrayOf("chains","list")).let {
+                if (it.isEmpty()) {
+                    emptyList()
+                } else {
+                    it.split(' ')
+                }
+            }
+            //Thread.sleep(5000)
             this.runOnUiThread {
-                progressBar.visibility = View.INVISIBLE
-
-                val list = findViewById<ListView>(R.id.list)
-
                 list.setAdapter (
                     ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, chains)
                 )
-
                 list.setOnItemClickListener(OnItemClickListener { parent, view, position, id ->
                     Toast.makeText (
                         applicationContext,
                         "Click ListItem Number $position", Toast.LENGTH_LONG
                     ).show()
                 })
+
+                wait.visibility = View.INVISIBLE
+                list.visibility = View.VISIBLE
             }
         }
     }
