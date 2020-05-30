@@ -68,30 +68,29 @@ class MainActivity : AppCompatActivity() {
             .setTitle("!!! Reset Freechains !!!")
             .setMessage("Delete all data?")
             .setIcon(android.R.drawable.ic_dialog_alert)
-            .setPositiveButton(android.R.string.yes,
-                DialogInterface.OnClickListener { _, _ ->
-                    val list = findViewById<View>(R.id.list)
-                    val wait = findViewById<View>(R.id.wait)
-                    list.visibility = View.INVISIBLE
-                    wait.visibility = View.VISIBLE
+            .setPositiveButton(android.R.string.yes, { _, _ ->
+                val list = findViewById<View>(R.id.list)
+                val wait = findViewById<View>(R.id.wait)
+                list.visibility = View.INVISIBLE
+                wait.visibility = View.VISIBLE
 
+                thread {
+                    this.reset()
                     thread {
-                        this.reset()
-                        thread {
-                            this.start()
-                        }
-                        Thread.sleep(500)
-                        this.runOnUiThread {
-                            wait.visibility = View.INVISIBLE
-                            list.visibility = View.VISIBLE
-                            Toast.makeText(
-                                this@MainActivity,
-                                "Freechains reset OK!",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        this.start()
                     }
-                })
+                    Thread.sleep(500)
+                    this.runOnUiThread {
+                        wait.visibility = View.INVISIBLE
+                        list.visibility = View.VISIBLE
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Freechains reset OK!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            })
             .setNegativeButton(android.R.string.no, null).show()
     }
 }
