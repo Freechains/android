@@ -1,11 +1,9 @@
 package org.freechains.android
 
-import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import android.widget.EditText
 import java.io.File
 import kotlin.concurrent.thread
 import org.freechains.common.main
@@ -22,7 +20,7 @@ class MainActivity : AppCompatActivity() {
         //File("xxx.txt").writeText("testando 123\n")
         //File("/chico/xxx.txt").writeText("testando 123\n")
         //File("chico/xxx.txt").writeText("testando 123\n")
-
+/*
         fsRoot = applicationContext.filesDir.toString()
         println(fsRoot)
 
@@ -35,15 +33,6 @@ class MainActivity : AppCompatActivity() {
             println(it.readText())
         }
 
-        main(arrayOf("host","create","/tests/"))
-        thread {
-            main(arrayOf("host","start","/tests/"))
-        }
-        thread {
-            Thread.sleep(100)
-            main(arrayOf("chain","join","/"))
-        }
-
         val list = listOf("Alpha", "Beta", "Gamma", "Delta", "Epsilon")
 
         list.toObservable() // extension function for Iterables
@@ -54,17 +43,28 @@ class MainActivity : AppCompatActivity() {
                 onComplete = { println("Done!") }
             )
 
+        main(arrayOf("host","create","/freechains/"))
+        thread {
+            main(arrayOf("host","start","/freechains/"))
+        }
+        thread {
+            Thread.sleep(100)
+            main(arrayOf("chains","join","/"))
+        }
+*/
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
     }
 
-    fun sendMessage(view: View) {
-        val editText = findViewById<EditText>(R.id.editText)
-        val message = editText.text.toString()
-        val intent = Intent(this, DisplayMessageActivity::class.java).apply {
-            putExtra(EXTRA_MESSAGE, message)
-        }
-        startActivity(intent)
+    fun onClick_Hosts (view: View) {
+        startActivity (
+            Intent(this, HostsActivity::class.java)
+        )
     }
 
+    fun onClick_Chains(view: View) {
+        startActivity (
+            Intent(this, ChainsActivity::class.java)
+        )
+    }
 }

@@ -6,34 +6,28 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <EditText
-        android:id="@+id/editText"
+    <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginRight="16dp"
-        android:ems="10"
-        android:hint="@string/edit_message"
-        android:inputType="textPersonName"
-        app:layout_constraintEnd_toStartOf="@+id/button2"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp"
-        android:hint="@string/button_send"
-        android:onClick="sendMessage"
-        app:layout_constraintBaseline_toBaselineOf="@+id/editText"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/editText" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
+        <Button
+            android:id="@+id/button_hosts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onClick_Hosts"
+            android:text="Hosts" />
+
+        <Button
+            android:id="@+id/button_chains"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onClick_Chains"
+            android:text="Chains" />
+
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
