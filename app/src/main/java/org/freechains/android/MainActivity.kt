@@ -1,58 +1,60 @@
 package org.freechains.android
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import kotlin.concurrent.thread
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import org.freechains.common.main
 import org.freechains.platform.fsRoot
+import java.io.File
+import kotlin.concurrent.thread
+
 
 const val EXTRA_MESSAGE = "org.freechains.android.MESSAGE"
 
 class MainActivity : AppCompatActivity() {
 
+    fun reset () {
+        main(arrayOf("host", "stop"))
+        File(fsRoot!!, "/").deleteRecursively()
+        main(arrayOf("host","create","/data/"))
+    }
+    fun start () {
+        main(arrayOf("host","start","/data/"))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-/*
-        //File("xxx.txt").writeText("testando 123\n")
-        //File("/chico/xxx.txt").writeText("testando 123\n")
-        //File("chico/xxx.txt").writeText("testando 123\n")
-import java.io.File
-import io.reactivex.rxjava3.kotlin.subscribeBy
-import io.reactivex.rxjava3.kotlin.toObservable
-
-        File(fsRoot!!, "test.txt").bufferedWriter().use {
-            it.write("teste 1")
-            it.newLine()
-        }
-
-        File(fsRoot!!, "test.txt").bufferedReader().use {
-            println(it.readText())
-        }
-
-        val list = listOf("Alpha", "Beta", "Gamma", "Delta", "Epsilon")
-
-        list.toObservable() // extension function for Iterables
-            .filter { it.length >= 5 }
-            .subscribeBy(  // named arguments for lambda Subscribers
-                onNext = { println(it) },
-                onError =  { it.printStackTrace() },
-                onComplete = { println("Done!") }
-            )
-*/
-
         fsRoot = applicationContext.filesDir.toString()
-        println(fsRoot)
-        main(arrayOf("host","create","/data/"))
+
+        //val pd = ProgressDialog(this)
+        //pd.setMessage("Loading Freechains...")
+        //pd.setCancelable(false)
+        //pd.show()
+
+        val list = findViewById<View>(R.id.list)
+        val wait = findViewById<View>(R.id.progressBar)
+
+        list.visibility = View.INVISIBLE
+        wait.visibility = View.VISIBLE
+
         thread {
-            main(arrayOf("host","start","/data/"))
-        }
-        thread {
-            Thread.sleep(100)
-            main(arrayOf("chains","join","/"))
-            main(arrayOf("chains","join","/mail"))
+            if (!File(fsRoot!!,"/data/").exists()) {
+                this.reset()
+            }
+            thread {
+                this.start()
+            }
+            //Thread.sleep(5000)
+            this.runOnUiThread {
+                //pd.dismiss()
+                wait.visibility = View.INVISIBLE
+                list.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -61,10 +63,34 @@ import io.reactivex.rxjava3.kotlin.toObservable
             Intent(this, HostsActivity::class.java)
         )
     }
-
     fun onClick_Chains(view: View) {
         startActivity (
             Intent(this, ChainsActivity::class.java)
         )
+    }
+    fun onClick_Reset (view: View) {
+        AlertDialog.Builder(this)
+            .setTitle("!!! Reset Freechains !!!")
+            .setMessage("Delete all data?")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton(android.R.string.yes,
+                DialogInterface.OnClickListener { _, _ ->
+                    val progressBar = findViewById<View>(R.id.progressBar)
+                    progressBar.visibility = View.VISIBLE
+
+                    thread {
+                        this.reset()
+                        Thread.sleep(5000)
+                        this.runOnUiThread {
+                            progressBar.visibility = View.INVISIBLE
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Freechains reset OK!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                })
+            .setNegativeButton(android.R.string.no, null).show()
     }
 }
