@@ -15,7 +15,7 @@
         android:focusable="true"
         android:onClick="onClick_add"
         app:backgroundTint="@color/colorPrimary"
-        app:srcCompat="@android:drawable/ic_input_add"
+        app:srcCompat="@drawable/ic_add_white_24dp"
         app:useCompatPadding="true" />
 
     <ExpandableListView

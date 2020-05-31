@@ -26,13 +26,12 @@ class ChainsActivity : AppCompatActivity() {
         list.visibility = View.INVISIBLE
         wait.visibility = View.VISIBLE
 
-        val local = Local_load()
-        local.chainsReload(this) {
+        LOCAL!!.chainsReload(this) {
             list.setAdapter (
                 ArrayAdapter<String> (
                     this,
                     android.R.layout.simple_list_item_1,
-                    local.chains
+                    LOCAL!!.chains
                 )
             )
             list.setOnItemClickListener { parent, view, position, id ->

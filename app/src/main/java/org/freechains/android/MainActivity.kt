@@ -28,10 +28,10 @@ class MainActivity : AppCompatActivity() {
         fsRoot = applicationContext.filesDir.toString()
         //println(fsRoot)
 
-        val list = findViewById<View>(R.id.list)
-        val wait = findViewById<View>(R.id.wait)
+        val table = findViewById<View>(R.id.table)
+        val wait  = findViewById<View>(R.id.wait)
 
-        list.visibility = View.INVISIBLE
+        table.visibility = View.INVISIBLE
         wait.visibility = View.VISIBLE
 
         thread {
@@ -44,11 +44,11 @@ class MainActivity : AppCompatActivity() {
             Thread.sleep(500)
             this.runOnUiThread {
                 val local = Local_load()
-                local.hostsReload(this) {}
-                local.chainsReload(this) {}
+                LOCAL!!.hostsReload(this) {}
+                LOCAL!!.chainsReload(this) {}
 
                 wait.visibility = View.INVISIBLE
-                list.visibility = View.VISIBLE
+                table.visibility = View.VISIBLE
             }
         }
     }

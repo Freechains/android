@@ -14,10 +14,6 @@ import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
 
-fun LOCAL () : String {
-    return fsRoot!! + "/" + "local.json"
-}
-
 @Serializable
 data class Host (
     val name   : String,
@@ -31,21 +27,24 @@ data class Local (
     var chains : List<String>
 )
 
-fun Local_load () : Local {
-    val file = File(LOCAL())
+var LOCAL: Local? = null
+
+fun Local_load () {
+    val file = File(fsRoot!! + "/" + "local.json")
     if (!file.exists()) {
-        return Local(emptyList(), emptyList())
+        LOCAL = Local(emptyList(), emptyList())
     } else {
         @UseExperimental(UnstableDefault::class)
         val json = Json(JsonConfiguration(prettyPrint=true))
-        return json.parse(Local.serializer(), file.readText())
+        LOCAL = json.parse(Local.serializer(), file.readText())
     }
+    LOCAL!!.save()
 }
 
 fun Local.save () {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    File(LOCAL()).writeText(json.stringify(Local.serializer(), this))
+    File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
 fun Local.hostsAdd (act: Activity, name: String, f: ()->Unit) {

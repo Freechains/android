@@ -9,14 +9,13 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
 class HostsActivity : AppCompatActivity() {
-    val ctx   = this
-    var local = Local_load()
+    val ctx = this
 
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
         findViewById<ExpandableListView>(R.id.list).setAdapter(this.adapter)
-        local.hostsReload(this) {
+        LOCAL!!.hostsReload(this) {
             this.adapter.notifyDataSetChanged()
         }
     }
@@ -29,7 +28,7 @@ class HostsActivity : AppCompatActivity() {
             return true
         }
         override fun getChild (i: Int, j: Int): Any? {
-            return local.hosts[i].chains[j]
+            return LOCAL!!.hosts[i].chains[j]
         }
         override fun getChildId (i: Int, j: Int): Long {
             return j.toLong()
@@ -37,36 +36,33 @@ class HostsActivity : AppCompatActivity() {
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.hosts_item,null)
-            view.findViewById<TextView>(R.id.host).text = local.hosts[i].chains[j]
-            if (!local.chains.contains(local.hosts[i].chains[j])) {
-                view.findViewById<TextView>(R.id.add).visibility = View.VISIBLE
+            view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].chains[j]
+            if (!LOCAL!!.chains.contains(LOCAL!!.hosts[i].chains[j])) {
+                view.findViewById<ImageButton>(R.id.add).visibility = View.VISIBLE
             }
             return view
         }
         override fun getChildrenCount (i: Int): Int {
-            return local.hosts[i].chains.size
+            return LOCAL!!.hosts[i].chains.size
         }
         override fun getGroupCount(): Int {
-            return local.hosts.size
+            return LOCAL!!.hosts.size
         }
         override fun getGroup (i: Int): Any {
-            return local.hosts[i]
+            return LOCAL!!.hosts[i]
         }
         override fun getGroupId (i: Int): Long {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.hosts_group,null)
-            view.findViewById<TextView>(R.id.host).text  = local.hosts[i].name
-            view.findViewById<TextView>(R.id.add).text = local.hosts[i].ping
+            view.findViewById<TextView>(R.id.host).text  = LOCAL!!.hosts[i].name
+            view.findViewById<TextView>(R.id.add).text = LOCAL!!.hosts[i].ping
             return view
         }
     }
 
     fun onClick_add (view: View) {
-        val list = findViewById<ListView>(R.id.list)
-        val wait = findViewById<View>(R.id.wait)
-
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Add host...")
 
@@ -76,7 +72,7 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            local.hostsAdd(this, input.text.toString()) {
+            LOCAL!!.hostsAdd(this, input.text.toString()) {
                 this.adapter.notifyDataSetChanged()
             }
         }
