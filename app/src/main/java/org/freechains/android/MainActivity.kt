@@ -45,8 +45,8 @@ class MainActivity : AppCompatActivity() {
             }
             Thread.sleep(500)
             this.runOnUiThread {
-                LOCAL!!.hostsReload(this) {}
-                LOCAL!!.chainsReload(this) {}
+                LOCAL!!.hostsReload() {}
+                LOCAL!!.chainsReload() {}
 
                 wait.visibility = View.INVISIBLE
                 table.visibility = View.VISIBLE

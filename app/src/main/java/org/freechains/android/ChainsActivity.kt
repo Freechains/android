@@ -26,23 +26,25 @@ class ChainsActivity : AppCompatActivity() {
         list.visibility = View.INVISIBLE
         wait.visibility = View.VISIBLE
 
-        LOCAL!!.chainsReload(this) {
-            list.setAdapter (
-                ArrayAdapter<String> (
-                    this,
-                    android.R.layout.simple_list_item_1,
-                    LOCAL!!.chains
+        LOCAL!!.chainsReload() {
+            runOnUiThread {
+                list.setAdapter (
+                    ArrayAdapter<String> (
+                        this,
+                        android.R.layout.simple_list_item_1,
+                        LOCAL!!.chains
+                    )
                 )
-            )
-            list.setOnItemClickListener { parent, view, position, id ->
-                Toast.makeText (
-                    applicationContext,
-                    "Click ListItem Number $position", Toast.LENGTH_LONG
-                ).show()
-            }
+                list.setOnItemClickListener { parent, view, position, id ->
+                    Toast.makeText (
+                        applicationContext,
+                        "Click ListItem Number $position", Toast.LENGTH_LONG
+                    ).show()
+                }
 
-            wait.visibility = View.INVISIBLE
-            list.visibility = View.VISIBLE
+                wait.visibility = View.INVISIBLE
+                list.visibility = View.VISIBLE
+            }
         }
     }
 

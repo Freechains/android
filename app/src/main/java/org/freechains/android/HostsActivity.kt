@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.*
 import android.widget.AdapterView.OnItemLongClickListener
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.concurrent.thread
 
 
 class HostsActivity : AppCompatActivity() {
@@ -19,17 +20,39 @@ class HostsActivity : AppCompatActivity() {
 
         findViewById<ExpandableListView>(R.id.list).let {
             it.setAdapter(this.adapter)
-            it.setOnItemLongClickListener(OnItemLongClickListener { _,_,i,_ ->
-                Toast.makeText (
-                    applicationContext,
-                    "Click ListItem Number $i = ${LOCAL!!.hosts[i].name}", Toast.LENGTH_LONG
-                ).show()
-                true
+            it.setOnItemLongClickListener(OnItemLongClickListener { _,_,_,id ->
+                val type = ExpandableListView.getPackedPositionType(id);
+                val i = ExpandableListView.getPackedPositionGroup(id);
+                when (type) {
+                    ExpandableListView.PACKED_POSITION_TYPE_GROUP -> {
+                        val host = LOCAL!!.hosts[i].name
+                        AlertDialog.Builder(this)
+                            .setTitle("Remove $host?")
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setPositiveButton(android.R.string.yes, { _, _ ->
+                                LOCAL!!.hostsRem(i) {
+                                    runOnUiThread {
+                                        this.adapter.notifyDataSetChanged()
+                                    }
+                                }
+                                Toast.makeText (
+                                    applicationContext,
+                                    "Removed $host.", Toast.LENGTH_LONG
+                                ).show()
+                            })
+                            .setNegativeButton(android.R.string.no, null).show()
+                        true
+                    }
+                    //ExpandableListView.PACKED_POSITION_TYPE_CHILD
+                    else -> false
+                }
             })
         }
 
-        LOCAL!!.hostsReload(this) {
-            this.adapter.notifyDataSetChanged()
+        LOCAL!!.hostsReload() {
+            runOnUiThread {
+                this.adapter.notifyDataSetChanged()
+            }
         }
     }
 
@@ -44,14 +67,14 @@ class HostsActivity : AppCompatActivity() {
             return LOCAL!!.hosts[i].chains[j]
         }
         override fun getChildId (i: Int, j: Int): Long {
-            return j.toLong()
+            return i*10+j.toLong()
         }
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
-            val view = View.inflate(ctx, R.layout.hosts_item,null)
+            val view = View.inflate(ctx, R.layout.hosts_group,null)
             view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].chains[j]
             if (!LOCAL!!.chains.contains(LOCAL!!.hosts[i].chains[j])) {
-                view.findViewById<ImageButton>(R.id.ping).visibility = View.VISIBLE
+                view.findViewById<TextView>(R.id.ping).visibility = View.VISIBLE
             }
             return view
         }
@@ -85,8 +108,10 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            LOCAL!!.hostsAdd(this, input.text.toString()) {
-                this.adapter.notifyDataSetChanged()
+            LOCAL!!.hostsAdd(input.text.toString()) {
+                runOnUiThread {
+                    this.adapter.notifyDataSetChanged()
+                }
             }
         }
 

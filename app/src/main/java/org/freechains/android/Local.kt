@@ -47,17 +47,23 @@ fun Local.save () {
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
-fun Local.hostsAdd (act: Activity, name: String, f: ()->Unit) {
-    thread {
-        synchronized (this) {
-            this.hosts += Host(name)
-            this.save()
-        }
-        this.hostsReload(act, f)
-    }
+@Synchronized
+fun Local.hostsAdd (name: String, f: ()->Unit) {
+    this.hosts += Host(name)
+    this.save()
+    f()
+    this.hostsReload(f)
 }
 
-fun Local.hostsReload (act: Activity, f: ()->Unit) {
+@Synchronized
+fun Local.hostsRem (i: Int, f: ()->Unit) {
+    this.hosts = this.hosts.filter { it.name != this.hosts[i].name }
+    this.save()
+    f()
+}
+
+@Synchronized
+fun Local.hostsReload (f: ()->Unit) {
     for (i in 0 until this.hosts.size) {
         val host = this.hosts[i].name + ":8330"
         thread {
@@ -65,22 +71,21 @@ fun Local.hostsReload (act: Activity, f: ()->Unit) {
                 val ms = main_(arrayOf("peer", "ping", host)).let {
                     if (it.isEmpty()) "down" else it+"ms"
                 }
-                //println(">>> $i // $ms // ${hosts[i]}")
+                //println(">>> $i // $ms // ${this.hosts[i]}")
                 val chains = main_(arrayOf("peer", "chains", host)).let {
                     if (it.isEmpty()) emptyList() else it.split(' ')
                 }
-                act.runOnUiThread {
-                    this.hosts[i].ping = ms
-                    this.hosts[i].chains = chains
-                    this.save()
-                    f()
-                }
+                this.hosts[i].ping = ms
+                this.hosts[i].chains = chains
+                this.save()
+                f()
             }
         }
     }
 }
 
-fun Local.chainsReload (act: Activity, f: ()->Unit) {
+@Synchronized
+fun Local.chainsReload (f: ()->Unit) {
     thread {
         val chains = main_(arrayOf("chains","list")).let {
             if (it.isEmpty()) {
@@ -90,7 +95,7 @@ fun Local.chainsReload (act: Activity, f: ()->Unit) {
             }
         }
         //Thread.sleep(5000)
-        act.runOnUiThread {
+        synchronized (this) {
             this.chains = chains
             this.save()
             f()
