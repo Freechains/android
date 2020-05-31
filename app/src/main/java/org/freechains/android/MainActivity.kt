@@ -31,6 +31,10 @@ data class Local (
     val hosts: ArrayList<String>
 )
 
+fun Local_load () : Local {
+    return File(LOCAL()).readText().fromJsonToHosts()
+}
+
 fun Local.toJson () : String {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))

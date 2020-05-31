@@ -1,14 +1,17 @@
 package org.freechains.android
 
 import android.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 
+
 class HostsActivity : AppCompatActivity() {
+    val ctx = this
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,15 +20,30 @@ class HostsActivity : AppCompatActivity() {
     }
 
     fun update () {
-        val hosts = File(LOCAL()).readText().fromJsonToHosts()
+        val local = File(LOCAL()).readText().fromJsonToHosts()
 
         val list = findViewById<ListView>(R.id.list)
         list.setAdapter (
-            ArrayAdapter<String> (
-                this,
-                android.R.layout.simple_list_item_1,
-                listOf("Add host...") + hosts.hosts
-            )
+            object : BaseAdapter() {
+                private val hosts = listOf("Add host...") + Local_load().hosts
+                override fun getCount(): Int {
+                    return hosts.size
+                }
+                override fun getItem (i: Int): Any {
+                    return hosts[i]
+                }
+                override fun getItemId (i: Int): Long {
+                    return i.toLong()
+                }
+                override fun getView (i: Int, convertView: View?, parent: ViewGroup): View {
+                    val view = View.inflate(ctx, R.layout.hosts_line,null)
+                    val host = view.findViewById(R.id.host) as TextView
+                    host.text = hosts[i]
+                    val state = view.findViewById(R.id.state) as TextView
+                    state.text = "zzz"
+                    return view
+                }
+            }
         )
         list.setOnItemClickListener { parent, view, position, id ->
             if (position == 0) {
