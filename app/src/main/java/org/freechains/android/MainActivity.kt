@@ -6,46 +6,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UnstableDefault
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.main
 import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
-
-fun LOCAL () : String {
-    return fsRoot!! + "/" + "local.json"
-}
-
-@Serializable
-data class Host (
-    val name: String,
-    var ping: String = "?"
-)
-
-@Serializable
-data class Local (
-    val hosts: ArrayList<Host>
-)
-
-fun Local_load () : Local {
-    val file = File(LOCAL())
-    if (!file.exists()) {
-        return Local(arrayListOf())
-    } else {
-        @UseExperimental(UnstableDefault::class)
-        val json = Json(JsonConfiguration(prettyPrint=true))
-        return json.parse(Local.serializer(), file.readText())
-    }
-}
-
-fun Local.save () {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    File(LOCAL()).writeText(json.stringify(Local.serializer(), this))
-}
 
 class MainActivity : AppCompatActivity() {
 
