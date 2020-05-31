@@ -20,7 +20,7 @@ class ChainsActivity : AppCompatActivity() {
     }
 
     fun update () {
-        val list = findViewById<ListView>(R.id.list)
+        val list = findViewById<ListView>(R.id.table)
         val wait = findViewById<View>(R.id.wait)
 
         list.visibility = View.INVISIBLE
@@ -47,7 +47,7 @@ class ChainsActivity : AppCompatActivity() {
     }
 
     fun onClick_join (view: View) {
-        val list = findViewById<ListView>(R.id.list)
+        val list = findViewById<ListView>(R.id.table)
         val wait = findViewById<View>(R.id.wait)
 
         val builder = AlertDialog.Builder(this)

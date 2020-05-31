@@ -14,7 +14,7 @@ class HostsActivity : AppCompatActivity() {
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
-        findViewById<ExpandableListView>(R.id.list).setAdapter(this.adapter)
+        findViewById<ExpandableListView>(R.id.table).setAdapter(this.adapter)
         LOCAL!!.hostsReload(this) {
             this.adapter.notifyDataSetChanged()
         }

@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
         main(arrayOf("host", "stop"))
         File(fsRoot!!, "/").deleteRecursively()
         main(arrayOf("host","create","/data/"))
+        Local_load()
     }
     fun start () {
         main(arrayOf("host","start","/data/"))
@@ -27,6 +28,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         fsRoot = applicationContext.filesDir.toString()
         //println(fsRoot)
+        Local_load()
 
         val table = findViewById<View>(R.id.table)
         val wait  = findViewById<View>(R.id.wait)
@@ -43,7 +45,6 @@ class MainActivity : AppCompatActivity() {
             }
             Thread.sleep(500)
             this.runOnUiThread {
-                val local = Local_load()
                 LOCAL!!.hostsReload(this) {}
                 LOCAL!!.chainsReload(this) {}
 
@@ -69,9 +70,9 @@ class MainActivity : AppCompatActivity() {
             .setMessage("Delete all data?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                val list = findViewById<View>(R.id.list)
-                val wait = findViewById<View>(R.id.wait)
-                list.visibility = View.INVISIBLE
+                val table = findViewById<View>(R.id.table)
+                val wait  = findViewById<View>(R.id.wait)
+                table.visibility = View.INVISIBLE
                 wait.visibility = View.VISIBLE
 
                 thread {
@@ -81,8 +82,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     Thread.sleep(500)
                     this.runOnUiThread {
-                        wait.visibility = View.INVISIBLE
-                        list.visibility = View.VISIBLE
+                        wait.visibility  = View.INVISIBLE
+                        table.visibility = View.VISIBLE
                         Toast.makeText(
                             this@MainActivity,
                             "Freechains reset OK!",
