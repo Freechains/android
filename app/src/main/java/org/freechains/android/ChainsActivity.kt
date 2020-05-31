@@ -41,18 +41,14 @@ class ChainsActivity : AppCompatActivity() {
                     ArrayAdapter<String> (
                         this,
                         android.R.layout.simple_list_item_1,
-                        listOf("Join chain...") + chains
+                        chains
                     )
                 )
                 list.setOnItemClickListener { parent, view, position, id ->
-                    if (position == 0) {
-                        this.join()
-                    } else {
-                        Toast.makeText (
-                            applicationContext,
-                            "Click ListItem Number $position", Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    Toast.makeText (
+                        applicationContext,
+                        "Click ListItem Number $position", Toast.LENGTH_LONG
+                    ).show()
                 }
 
                 wait.visibility = View.INVISIBLE
@@ -61,7 +57,7 @@ class ChainsActivity : AppCompatActivity() {
         }
     }
 
-    fun join () {
+    fun onClick_join (view: View) {
         val list = findViewById<ListView>(R.id.list)
         val wait = findViewById<View>(R.id.wait)
 

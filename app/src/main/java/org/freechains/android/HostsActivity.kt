@@ -18,30 +18,29 @@ class HostsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
+        this.update()
+    }
 
-        (findViewById(R.id.add) as View).setOnClickListener {
-            val list = findViewById<ListView>(R.id.list)
-            val wait = findViewById<View>(R.id.wait)
+    fun onClick_add (view: View) {
+        val list = findViewById<ListView>(R.id.list)
+        val wait = findViewById<View>(R.id.wait)
 
-            val builder = AlertDialog.Builder(this)
-            builder.setTitle("Add host...")
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Add host...")
 
-            val input = EditText(this)
-            input.inputType = InputType.TYPE_CLASS_TEXT
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_TEXT
 
-            builder.setView(input)
-            builder.setNegativeButton ("Cancel", null)
-            builder.setPositiveButton("OK") { _,_ ->
-                val hosts = File(LOCAL()).readText().fromJsonToHosts()
-                hosts.hosts.add(input.text.toString())
-                File(LOCAL()).writeText(hosts.toJson())
-                this.update()
-            }
-
-            builder.show()
+        builder.setView(input)
+        builder.setNegativeButton ("Cancel", null)
+        builder.setPositiveButton("OK") { _,_ ->
+            val hosts = File(LOCAL()).readText().fromJsonToHosts()
+            hosts.hosts.add(input.text.toString())
+            File(LOCAL()).writeText(hosts.toJson())
+            this.update()
         }
 
-        this.update()
+        builder.show()
     }
 
     fun update () {
@@ -67,7 +66,9 @@ class HostsActivity : AppCompatActivity() {
                 }
                 override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                            convertView: View?, parent: ViewGroup?): View? {
-                    return View.inflate(ctx, android.R.layout.simple_list_item_1,null)
+                    val view = View.inflate(ctx, android.R.layout.simple_list_item_1,null)
+                    view.findViewById<TextView>(android.R.id.text1).text = "xxxxx"
+                    return view
                 }
                 override fun getChildrenCount (i: Int): Int {
                     return 1
@@ -84,8 +85,8 @@ class HostsActivity : AppCompatActivity() {
                 }
                 override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
                     val view = View.inflate(ctx, R.layout.hosts_line,null)
-                    (view.findViewById(R.id.host)  as TextView).text = hosts[i]
-                    (view.findViewById(R.id.state) as TextView).text = "?"
+                    view.findViewById<TextView>(R.id.host).text  = hosts[i]
+                    view.findViewById<TextView>(R.id.state).text = "?"
                     return view
                 }
             }

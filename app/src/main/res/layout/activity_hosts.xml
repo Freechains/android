@@ -17,13 +17,16 @@
         </ExpandableListView>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/add"
+            android:id="@+id/button_add"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
             android:clickable="true"
             android:focusable="true"
-            app:srcCompat="@android:drawable/ic_input_add" />
+            android:onClick="onClick_add"
+            app:backgroundTint="@color/colorPrimary"
+            app:srcCompat="@android:drawable/ic_input_add"
+            app:useCompatPadding="true" />
 
     </FrameLayout>
 
