@@ -26,33 +26,24 @@ class ChainsActivity : AppCompatActivity() {
         list.visibility = View.INVISIBLE
         wait.visibility = View.VISIBLE
 
-        thread {
-            val chains = main_(arrayOf("chains","list")).let {
-                if (it.isEmpty()) {
-                    emptyList()
-                } else {
-                    it.split(' ')
-                }
-            }
-            //Thread.sleep(5000)
-            this.runOnUiThread {
-                list.setAdapter (
-                    ArrayAdapter<String> (
-                        this,
-                        android.R.layout.simple_list_item_1,
-                        chains
-                    )
+        val local = Local_load()
+        local.chainsReload(this) {
+            list.setAdapter (
+                ArrayAdapter<String> (
+                    this,
+                    android.R.layout.simple_list_item_1,
+                    local.chains
                 )
-                list.setOnItemClickListener { parent, view, position, id ->
-                    Toast.makeText (
-                        applicationContext,
-                        "Click ListItem Number $position", Toast.LENGTH_LONG
-                    ).show()
-                }
-
-                wait.visibility = View.INVISIBLE
-                list.visibility = View.VISIBLE
+            )
+            list.setOnItemClickListener { parent, view, position, id ->
+                Toast.makeText (
+                    applicationContext,
+                    "Click ListItem Number $position", Toast.LENGTH_LONG
+                ).show()
             }
+
+            wait.visibility = View.INVISIBLE
+            list.visibility = View.VISIBLE
         }
     }
 

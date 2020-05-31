@@ -43,6 +43,10 @@ class MainActivity : AppCompatActivity() {
             }
             Thread.sleep(500)
             this.runOnUiThread {
+                val local = Local_load()
+                local.hostsReload(this) {}
+                local.chainsReload(this) {}
+
                 wait.visibility = View.INVISIBLE
                 list.visibility = View.VISIBLE
             }

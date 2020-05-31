@@ -7,8 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import org.freechains.common.main_
-import kotlin.concurrent.thread
 
 class HostsActivity : AppCompatActivity() {
     val ctx   = this
@@ -18,10 +16,8 @@ class HostsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
         findViewById<ExpandableListView>(R.id.list).setAdapter(this.adapter)
-        for (i in 0 until local.hosts.size) {
-            local.mutHost(this,i) {
-                this.adapter.notifyDataSetChanged()
-            }
+        local.hostsReload(this) {
+            this.adapter.notifyDataSetChanged()
         }
     }
 
@@ -42,8 +38,7 @@ class HostsActivity : AppCompatActivity() {
                                    convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.hosts_item,null)
             view.findViewById<TextView>(R.id.host).text = local.hosts[i].chains[j]
-            //if (local.hosts[i].chains[j]) {
-            if (false) {
+            if (!local.chains.contains(local.hosts[i].chains[j])) {
                 view.findViewById<TextView>(R.id.add).visibility = View.VISIBLE
             }
             return view
@@ -81,10 +76,7 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            local.hosts += Host(input.text.toString())
-            local.save()
-            val i = local.hosts.lastIndex
-            local.mutHost(this,i) {
+            local.hostsAdd(this, input.text.toString()) {
                 this.adapter.notifyDataSetChanged()
             }
         }
