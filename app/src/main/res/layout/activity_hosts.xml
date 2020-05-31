@@ -19,7 +19,8 @@
         app:useCompatPadding="true" />
 
     <ExpandableListView
-        android:id="@+id/table"
+        android:id="@+id/list"
+        android:longClickable="true"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

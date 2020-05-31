@@ -6,7 +6,9 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import android.widget.AdapterView.OnItemLongClickListener
 import androidx.appcompat.app.AppCompatActivity
+
 
 class HostsActivity : AppCompatActivity() {
     val ctx = this
@@ -14,7 +16,18 @@ class HostsActivity : AppCompatActivity() {
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
-        findViewById<ExpandableListView>(R.id.table).setAdapter(this.adapter)
+
+        findViewById<ExpandableListView>(R.id.list).let {
+            it.setAdapter(this.adapter)
+            it.setOnItemLongClickListener(OnItemLongClickListener { _,_,i,_ ->
+                Toast.makeText (
+                    applicationContext,
+                    "Click ListItem Number $i = ${LOCAL!!.hosts[i].name}", Toast.LENGTH_LONG
+                ).show()
+                true
+            })
+        }
+
         LOCAL!!.hostsReload(this) {
             this.adapter.notifyDataSetChanged()
         }
@@ -38,7 +51,7 @@ class HostsActivity : AppCompatActivity() {
             val view = View.inflate(ctx, R.layout.hosts_item,null)
             view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].chains[j]
             if (!LOCAL!!.chains.contains(LOCAL!!.hosts[i].chains[j])) {
-                view.findViewById<ImageButton>(R.id.add).visibility = View.VISIBLE
+                view.findViewById<ImageButton>(R.id.ping).visibility = View.VISIBLE
             }
             return view
         }
@@ -56,8 +69,8 @@ class HostsActivity : AppCompatActivity() {
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.hosts_group,null)
-            view.findViewById<TextView>(R.id.host).text  = LOCAL!!.hosts[i].name
-            view.findViewById<TextView>(R.id.add).text = LOCAL!!.hosts[i].ping
+            view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].name
+            view.findViewById<TextView>(R.id.ping).text = LOCAL!!.hosts[i].ping
             return view
         }
     }
