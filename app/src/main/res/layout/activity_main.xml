@@ -12,38 +12,78 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center" />
 
-    <LinearLayout
-        android:id="@+id/list"
+    <TableLayout
+        android:id="@+id/table"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/button_hosts"
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="?attr/listPreferredItemHeight"
-            android:onClick="onClick_Hosts"
-            android:text="Hosts"
-            android:textSize="24sp" />
+            android:layout_height="match_parent" >
 
-        <TextView
-            android:id="@+id/button_chains"
+            <ImageView
+                android:id="@+id/image_hosts"
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:minHeight="?attr/listPreferredItemHeightSmall"
+                android:onClick="onClick_Hosts"
+                app:srcCompat="@drawable/ic_phonelink_ring_black_96dp" />
+
+            <ImageView
+                android:id="@+id/image_chains"
+                android:layout_width="0px"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:minHeight="?attr/listPreferredItemHeightSmall"
+                android:onClick="onClick_Chains"
+                app:srcCompat="@drawable/ic_rss_feed_black_96dp" />
+        </TableRow>
+
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="?attr/listPreferredItemHeight"
-            android:onClick="onClick_Chains"
-            android:text="Chains"
-            android:textSize="24sp" />
+            android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/button_reset"
+            <TextView
+                android:id="@+id/button_hosts"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:minHeight="?attr/listPreferredItemHeight"
+                android:text="Peers"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/button_chains"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:minHeight="?attr/listPreferredItemHeight"
+                android:text="Chains"
+                android:textSize="24sp" />
+        </TableRow>
+
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="?attr/listPreferredItemHeight"
-            android:onClick="onClick_Reset"
-            android:text="!!! Reset Freechains !!!"
-            android:textSize="24sp" />
+            android:layout_height="match_parent">
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/button_reset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:background="#F44336"
+                android:gravity="center"
+                android:minHeight="?attr/listPreferredItemHeight"
+                android:onClick="onClick_Reset"
+                android:text="!!! Reset Freechains !!!"
+                android:textSize="24sp" />
+        </TableRow>
+
+    </TableLayout>
+
 </FrameLayout>
