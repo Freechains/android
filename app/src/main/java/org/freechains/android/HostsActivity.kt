@@ -84,7 +84,7 @@ class HostsActivity : AppCompatActivity() {
                     return i.toLong()
                 }
                 override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
-                    val view = View.inflate(ctx, R.layout.hosts_line,null)
+                    val view = View.inflate(ctx, R.layout.hosts_group,null)
                     view.findViewById<TextView>(R.id.host).text  = hosts[i]
                     view.findViewById<TextView>(R.id.state).text = "?"
                     return view
