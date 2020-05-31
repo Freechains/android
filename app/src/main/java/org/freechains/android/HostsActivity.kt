@@ -18,6 +18,29 @@ class HostsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
+
+        (findViewById(R.id.add) as View).setOnClickListener {
+            val list = findViewById<ListView>(R.id.list)
+            val wait = findViewById<View>(R.id.wait)
+
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("Add host...")
+
+            val input = EditText(this)
+            input.inputType = InputType.TYPE_CLASS_TEXT
+
+            builder.setView(input)
+            builder.setNegativeButton ("Cancel", null)
+            builder.setPositiveButton("OK") { _,_ ->
+                val hosts = File(LOCAL()).readText().fromJsonToHosts()
+                hosts.hosts.add(input.text.toString())
+                File(LOCAL()).writeText(hosts.toJson())
+                this.update()
+            }
+
+            builder.show()
+        }
+
         this.update()
     }
 
@@ -27,7 +50,7 @@ class HostsActivity : AppCompatActivity() {
         val list = findViewById<ExpandableListView>(R.id.list)
         list.setAdapter (
             object : BaseExpandableListAdapter () {
-                private val hosts = listOf("Add host...") + Local_load().hosts
+                private val hosts = Local_load().hosts
 
                 override fun hasStableIds(): Boolean {
                     return false
@@ -61,25 +84,17 @@ class HostsActivity : AppCompatActivity() {
                 }
                 override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
                     val view = View.inflate(ctx, R.layout.hosts_line,null)
-                    val host = view.findViewById(R.id.host) as TextView
-                    host.text = hosts[i]
-                    val state = view.findViewById(R.id.state) as TextView
-                    if (i > 0) {
-                        state.text = "?"
-                    }
+                    (view.findViewById(R.id.host)  as TextView).text = hosts[i]
+                    (view.findViewById(R.id.state) as TextView).text = "?"
                     return view
                 }
             }
         )
         list.setOnItemClickListener { parent, view, position, id ->
-            if (position == 0) {
-                this.add()
-            } else {
-                Toast.makeText(
-                    applicationContext,
-                    "Click ListItem Number $position", Toast.LENGTH_LONG
-                ).show()
-            }
+            Toast.makeText(
+                applicationContext,
+                "Click ListItem Number $position", Toast.LENGTH_LONG
+            ).show()
         }
 
         thread {
@@ -87,39 +102,15 @@ class HostsActivity : AppCompatActivity() {
             val hosts = Local_load().hosts
             for (i in 0 until hosts.size) {
                 thread {
-                    println(">>> MS = antes // ${hosts[i]}")
                     val ms = main_(arrayOf("peer", "ping", hosts[i]+":8330"))
-                    println(">>> MS = $ms // ${hosts[i]}")
+                    println(">>> $i // $ms // ${hosts[i]}")
                     this.runOnUiThread {
-                        list.findViewById<ListView>(R.id.list)
-                            .getChildAt(i + 1)    // +1 skip "Add host..."
+                        list.getChildAt(i)
                             .findViewById<TextView>(R.id.state)
                             .text = if (ms.isEmpty()) "down" else ms+"ms"
                     }
                 }
             }
         }
-    }
-
-    fun add () {
-        val list = findViewById<ListView>(R.id.list)
-        val wait = findViewById<View>(R.id.wait)
-
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Add host...")
-
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_CLASS_TEXT
-
-        builder.setView(input)
-        builder.setNegativeButton ("Cancel", null)
-        builder.setPositiveButton("OK") { _,_ ->
-            val hosts = File(LOCAL()).readText().fromJsonToHosts()
-            hosts.hosts.add(input.text.toString())
-            File(LOCAL()).writeText(hosts.toJson())
-            this.update()
-        }
-
-        builder.show()
     }
 }
