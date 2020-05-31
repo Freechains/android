@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import org.freechains.common.main_
 import kotlin.concurrent.thread
 
-
 class ChainsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

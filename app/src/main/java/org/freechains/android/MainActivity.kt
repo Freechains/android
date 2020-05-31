@@ -16,35 +16,35 @@ import java.io.File
 import kotlin.concurrent.thread
 
 fun LOCAL () : String {
-    val path = fsRoot!! + "/" + "local.json"
-
-    val file = File(path)
-    if (!file.exists()) {
-        file.writeText(Local(arrayListOf()).toJson())
-    }
-
-    return path
+    return fsRoot!! + "/" + "local.json"
 }
 
 @Serializable
+data class Host (
+    val name: String,
+    var ping: String = "?"
+)
+
+@Serializable
 data class Local (
-    val hosts: ArrayList<String>
+    val hosts: ArrayList<Host>
 )
 
 fun Local_load () : Local {
-    return File(LOCAL()).readText().fromJsonToHosts()
+    val file = File(LOCAL())
+    if (!file.exists()) {
+        return Local(arrayListOf())
+    } else {
+        @UseExperimental(UnstableDefault::class)
+        val json = Json(JsonConfiguration(prettyPrint=true))
+        return json.parse(Local.serializer(), file.readText())
+    }
 }
 
-fun Local.toJson () : String {
+fun Local.save () {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.stringify(Local.serializer(), this)
-}
-
-fun String.fromJsonToHosts () : Local {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    return json.parse(Local.serializer(), this)
+    File(LOCAL()).writeText(json.stringify(Local.serializer(), this))
 }
 
 class MainActivity : AppCompatActivity() {

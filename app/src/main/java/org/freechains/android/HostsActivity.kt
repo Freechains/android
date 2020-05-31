@@ -8,17 +8,73 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import org.freechains.common.main_
-import java.io.File
 import kotlin.concurrent.thread
 
-
 class HostsActivity : AppCompatActivity() {
-    val ctx = this
+    val ctx   = this
+    var local = Local_load()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hosts)
-        this.update()
+        findViewById<ExpandableListView>(R.id.list).setAdapter(this.adapter)
+        for (i in 0 until local.hosts.size) {
+            ping_i(i)
+        }
+    }
+
+    private fun ping_i (i: Int) {
+        val host = local.hosts[i].name+":8330"
+        thread {
+            val ms = main_(arrayOf("peer", "ping", host)).let {
+                if (it.isEmpty()) "down" else it+"ms"
+            }
+            //println(">>> $i // $ms // ${hosts[i]}")
+            this.runOnUiThread {
+                local.hosts[i].ping = ms
+                local.save()
+                this.adapter.notifyDataSetChanged()
+            }
+        }
+    }
+
+    private val adapter = object : BaseExpandableListAdapter () {
+        override fun hasStableIds(): Boolean {
+            return false
+        }
+        override fun isChildSelectable (i: Int, j: Int): Boolean {
+            return true
+        }
+        override fun getChild (i: Int, j: Int): Any? {
+            return "child"
+        }
+        override fun getChildId (i: Int, j: Int): Long {
+            return j.toLong()
+        }
+        override fun getChildView (i: Int, j: Int, isLast: Boolean,
+                                   convertView: View?, parent: ViewGroup?): View? {
+            val view = View.inflate(ctx, android.R.layout.simple_list_item_1,null)
+            view.findViewById<TextView>(android.R.id.text1).text = "xxxxx"
+            return view
+        }
+        override fun getChildrenCount (i: Int): Int {
+            return 1
+        }
+        override fun getGroupCount(): Int {
+            return local.hosts.size
+        }
+        override fun getGroup (i: Int): Any {
+            return local.hosts[i]
+        }
+        override fun getGroupId (i: Int): Long {
+            return i.toLong()
+        }
+        override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
+            val view = View.inflate(ctx, R.layout.hosts_group,null)
+            view.findViewById<TextView>(R.id.host).text  = local.hosts[i].name
+            view.findViewById<TextView>(R.id.state).text = local.hosts[i].ping
+            return view
+        }
     }
 
     fun onClick_add (view: View) {
@@ -34,84 +90,12 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            val hosts = File(LOCAL()).readText().fromJsonToHosts()
-            hosts.hosts.add(input.text.toString())
-            File(LOCAL()).writeText(hosts.toJson())
-            this.update()
+            local.hosts.add(Host(input.text.toString()))
+            local.save()
+            val i = local.hosts.lastIndex
+            thread { ping_i(i) }
         }
 
         builder.show()
-    }
-
-    fun update () {
-        val local = File(LOCAL()).readText().fromJsonToHosts()
-
-        val list = findViewById<ExpandableListView>(R.id.list)
-        list.setAdapter (
-            object : BaseExpandableListAdapter () {
-                private val hosts = Local_load().hosts
-
-                override fun hasStableIds(): Boolean {
-                    return false
-                }
-
-                override fun isChildSelectable (i: Int, j: Int): Boolean {
-                    return true
-                }
-                override fun getChild (i: Int, j: Int): Any? {
-                    return "child"
-                }
-                override fun getChildId (i: Int, j: Int): Long {
-                    return j.toLong()
-                }
-                override fun getChildView (i: Int, j: Int, isLast: Boolean,
-                                           convertView: View?, parent: ViewGroup?): View? {
-                    val view = View.inflate(ctx, android.R.layout.simple_list_item_1,null)
-                    view.findViewById<TextView>(android.R.id.text1).text = "xxxxx"
-                    return view
-                }
-                override fun getChildrenCount (i: Int): Int {
-                    return 1
-                }
-
-                override fun getGroupCount(): Int {
-                    return hosts.size
-                }
-                override fun getGroup (i: Int): Any {
-                    return hosts[i]
-                }
-                override fun getGroupId (i: Int): Long {
-                    return i.toLong()
-                }
-                override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
-                    val view = View.inflate(ctx, R.layout.hosts_group,null)
-                    view.findViewById<TextView>(R.id.host).text  = hosts[i]
-                    view.findViewById<TextView>(R.id.state).text = "?"
-                    return view
-                }
-            }
-        )
-        list.setOnItemClickListener { parent, view, position, id ->
-            Toast.makeText(
-                applicationContext,
-                "Click ListItem Number $position", Toast.LENGTH_LONG
-            ).show()
-        }
-
-        thread {
-            Thread.sleep(500)
-            val hosts = Local_load().hosts
-            for (i in 0 until hosts.size) {
-                thread {
-                    val ms = main_(arrayOf("peer", "ping", hosts[i]+":8330"))
-                    println(">>> $i // $ms // ${hosts[i]}")
-                    this.runOnUiThread {
-                        list.getChildAt(i)
-                            .findViewById<TextView>(R.id.state)
-                            .text = if (ms.isEmpty()) "down" else ms+"ms"
-                    }
-                }
-            }
-        }
     }
 }
