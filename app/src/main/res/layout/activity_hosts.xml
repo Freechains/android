@@ -13,7 +13,7 @@
         android:layout_gravity="end|bottom"
         android:clickable="true"
         android:focusable="true"
-        android:onClick="onClick_add"
+        android:onClick="onClick_add_host"
         app:backgroundTint="@color/colorPrimary"
         app:srcCompat="@drawable/ic_add_white_24dp"
         app:useCompatPadding="true" />

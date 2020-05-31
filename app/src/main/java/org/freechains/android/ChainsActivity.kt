@@ -64,12 +64,19 @@ class ChainsActivity : AppCompatActivity() {
             list!!.visibility = View.INVISIBLE
             wait!!.visibility = View.VISIBLE
 
+            val chain = input.text.toString()
             thread {
-                main_(arrayOf("chains", "join", input.text.toString()))
+                main_(arrayOf("chains", "join", chain))
                 this.runOnUiThread {
                     this.update()
                 }
             }
+
+            Toast.makeText(
+                this,
+                "Added $chain.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         builder.show()

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.*
 import android.widget.AdapterView.OnItemLongClickListener
 import androidx.appcompat.app.AppCompatActivity
+import org.freechains.common.main_
 import kotlin.concurrent.thread
 
 
@@ -71,10 +72,14 @@ class HostsActivity : AppCompatActivity() {
         }
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
-            val view = View.inflate(ctx, R.layout.hosts_group,null)
-            view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].chains[j]
+            val view = View.inflate(ctx, R.layout.activity_hosts_chain,null)
+            val chain = LOCAL!!.hosts[i].chains[j]
+            view.findViewById<TextView>(R.id.chain).text = chain
             if (!LOCAL!!.chains.contains(LOCAL!!.hosts[i].chains[j])) {
-                view.findViewById<TextView>(R.id.ping).visibility = View.VISIBLE
+                view.findViewById<ImageButton>(R.id.add).let {
+                    it.visibility = View.VISIBLE
+                    it.tag = chain
+                }
             }
             return view
         }
@@ -91,14 +96,14 @@ class HostsActivity : AppCompatActivity() {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
-            val view = View.inflate(ctx, R.layout.hosts_group,null)
+            val view = View.inflate(ctx, R.layout.activity_hosts_host,null)
             view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].name
             view.findViewById<TextView>(R.id.ping).text = LOCAL!!.hosts[i].ping
             return view
         }
     }
 
-    fun onClick_add (view: View) {
+    fun onClick_add_host (view: View) {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Add host...")
 
@@ -108,13 +113,32 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            LOCAL!!.hostsAdd(input.text.toString()) {
+            val host = input.text.toString()
+            LOCAL!!.hostsAdd(host) {
                 runOnUiThread {
                     this.adapter.notifyDataSetChanged()
+                    Toast.makeText(
+                        this,
+                        "Added $host.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                 }
             }
         }
 
         builder.show()
+    }
+
+    fun onClick_add_chain (view: View) {
+        val chain = view.tag as String
+        thread {
+            main_(arrayOf("chains", "join", chain))
+        }
+        Toast.makeText(
+            this,
+            "Added $chain.",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
