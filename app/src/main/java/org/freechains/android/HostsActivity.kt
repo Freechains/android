@@ -19,28 +19,7 @@ class HostsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_hosts)
         findViewById<ExpandableListView>(R.id.list).setAdapter(this.adapter)
         for (i in 0 until local.hosts.size) {
-            mutate(i)
-        }
-    }
-
-    private fun mutate (i: Int) {
-        val host = local.hosts[i].name+":8330"
-        thread {
-            val ms = main_(arrayOf("peer", "ping", host)).let {
-                if (it.isEmpty()) "down" else it+"ms"
-            }
-            //println(">>> $i // $ms // ${hosts[i]}")
-            this.runOnUiThread {
-                local.hosts[i].ping = ms
-                local.save()
-                this.adapter.notifyDataSetChanged()
-            }
-            val chains = main_(arrayOf("peer", "chains", host)).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
-            }
-            this.runOnUiThread {
-                local.hosts[i].chains = chains
-                local.save()
+            local.mutHost(this,i) {
                 this.adapter.notifyDataSetChanged()
             }
         }
@@ -102,10 +81,12 @@ class HostsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            local.hosts.add(Host(input.text.toString()))
+            local.hosts += Host(input.text.toString())
             local.save()
             val i = local.hosts.lastIndex
-            thread { mutate(i) }
+            local.mutHost(this,i) {
+                this.adapter.notifyDataSetChanged()
+            }
         }
 
         builder.show()
