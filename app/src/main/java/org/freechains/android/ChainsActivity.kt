@@ -13,6 +13,10 @@ import kotlin.concurrent.thread
 class ChainsActivity : AppCompatActivity() {
     val ctx = this
 
+    var isActive = true
+    override fun onPause()  { super.onPause()  ; this.isActive=false }
+    override fun onResume() { super.onResume() ; this.isActive=true  }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chains)
@@ -72,14 +76,22 @@ class ChainsActivity : AppCompatActivity() {
         }
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
-            val block = LOCAL!!.chains[i].blocks[j].block2id()
+            val chain = LOCAL!!.chains[i]
+            val block = chain.blocks[j]
             val view = View.inflate(ctx, R.layout.simple,null)
-            view.findViewById<TextView>(android.R.id.text1).text = block
+            view.findViewById<TextView>(R.id.text).text = block.block2id()
             view.setOnClickListener {
-                Toast.makeText (
-                    applicationContext,
-                    "Clicked $block.", Toast.LENGTH_LONG
-                ).show()
+                thread {
+                    val pay = main_(arrayOf("chain","get",chain.name,"payload",block))
+                    runOnUiThread {
+                        if (ctx.isActive) {
+                            AlertDialog.Builder(ctx)
+                                .setTitle("Block ${block.block2id()}")
+                                .setMessage(pay)
+                                .show()
+                        }
+                    }
+                }
             }
             return view
         }
