@@ -73,7 +73,7 @@ class ChainsActivity : AppCompatActivity() {
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
             val head = LOCAL!!.chains[i].heads[j]
-            val view = View.inflate(ctx, android.R.layout.activity_list_item,null)
+            val view = View.inflate(ctx, R.layout.simple,null)
             view.findViewById<TextView>(android.R.id.text1).text = head
             view.setOnClickListener {
                 Toast.makeText (
@@ -96,7 +96,7 @@ class ChainsActivity : AppCompatActivity() {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
-            val view = View.inflate(ctx, android.R.layout.activity_list_item,null)
+            val view = View.inflate(ctx, R.layout.simple,null)
             val chain = LOCAL!!.chains[i].name
             view.findViewById<TextView>(android.R.id.text1).text = chain
             view.tag = chain
