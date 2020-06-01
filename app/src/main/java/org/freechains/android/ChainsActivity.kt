@@ -96,9 +96,12 @@ class ChainsActivity : AppCompatActivity() {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
-            val view = View.inflate(ctx, R.layout.simple,null)
-            val chain = LOCAL!!.chains[i].name
-            view.findViewById<TextView>(android.R.id.text1).text = chain
+            val view = View.inflate(ctx, R.layout.activity_chains_chain,null)
+            val chain = LOCAL!!.chains[i]
+            view.findViewById<TextView>(R.id.chain).text = chain.name
+            view.findViewById<TextView>(R.id.heads).text = chain.heads
+                .map { it.block2id() }
+                .joinToString("\n")
             view.tag = chain
             return view
         }

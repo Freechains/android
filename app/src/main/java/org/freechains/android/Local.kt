@@ -9,6 +9,10 @@ import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
 
+fun String.block2id () : String {
+    return this.take(5) + "..." + this.takeLast(3)
+}
+
 @Serializable
 data class Host (
     val name   : String,
