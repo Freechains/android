@@ -114,23 +114,30 @@ class HostsActivity : AppCompatActivity() {
             LOCAL!!.hostsAdd(host) {
                 runOnUiThread {
                     this.adapter.notifyDataSetChanged()
-                    Toast.makeText(
-                        this,
-                        "Added $host.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
                 }
             }
+            Toast.makeText(
+                this,
+                "Added $host.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         builder.show()
     }
 
     fun onClick_add_chain (view: View) {
+        view.visibility = View.INVISIBLE
         val chain = view.tag as String
         thread {
             main_(arrayOf("chains", "join", chain))
+            runOnUiThread {
+                LOCAL!!.hostsReload() {
+                    runOnUiThread {
+                        this.adapter.notifyDataSetChanged()
+                    }
+                }
+            }
         }
         Toast.makeText(
             this,
