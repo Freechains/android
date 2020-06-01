@@ -80,18 +80,26 @@ class ChainsActivity : AppCompatActivity() {
             val block = chain.blocks[j]
             val view = View.inflate(ctx, R.layout.simple,null)
             view.findViewById<TextView>(R.id.text).text = block.block2id()
-            view.setOnClickListener {
+
+            fun f (get: String) {
                 thread {
-                    val pay = main_(arrayOf("chain","get",chain.name,"payload",block))
+                    val pay = main_(arrayOf("chain","get",chain.name,get,block))
                     runOnUiThread {
                         if (ctx.isActive) {
                             AlertDialog.Builder(ctx)
-                                .setTitle("Block ${block.block2id()}")
+                                .setTitle("Block ${block.block2id()}:")
                                 .setMessage(pay)
                                 .show()
                         }
                     }
                 }
+            }
+            view.setOnLongClickListener {
+                f("block")
+                true
+            }
+            view.setOnClickListener {
+                f("payload")
             }
             return view
         }
@@ -141,7 +149,7 @@ class ChainsActivity : AppCompatActivity() {
             }
 
             Toast.makeText(
-                this,
+                applicationContext,
                 "Added $chain.",
                 Toast.LENGTH_SHORT
             ).show()

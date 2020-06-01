@@ -150,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                         wait.visibility  = View.INVISIBLE
                         table.visibility = View.VISIBLE
                         Toast.makeText(
-                            this@MainActivity,
+                            applicationContext,
                             "Freechains reset OK!",
                             Toast.LENGTH_SHORT
                         ).show()

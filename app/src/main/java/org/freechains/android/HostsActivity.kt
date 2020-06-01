@@ -117,7 +117,7 @@ class HostsActivity : AppCompatActivity() {
                 }
             }
             Toast.makeText(
-                this,
+                applicationContext,
                 "Added $host.",
                 Toast.LENGTH_SHORT
             ).show()
@@ -140,7 +140,7 @@ class HostsActivity : AppCompatActivity() {
             }
         }
         Toast.makeText(
-            this,
+            applicationContext,
             "Added $chain.",
             Toast.LENGTH_SHORT
         ).show()
