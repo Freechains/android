@@ -10,11 +10,11 @@ import java.io.File
 import kotlin.concurrent.thread
 
 fun String.block2id () : String {
-    return "$" + this.take(5) + "..." + this.takeLast(3)
+    return this.take(5) + "..." + this.takeLast(3)
 }
 
 fun String.chain2id () : String {
-    if (this.drop(1).all { it.isDigit() || it.isUpperCase() }) {
+    if (this.length==65 && this.all{ it=='/' || it.isDigit() || it.isUpperCase() }) {
         return this.take(4) + "..." + this.takeLast(3)
     } else {
         return this

@@ -102,7 +102,7 @@ class ChainsActivity : AppCompatActivity() {
             view.findViewById<TextView>(R.id.heads).text = chain.heads
                 .map { it.block2id() }
                 .joinToString("\n")
-            view.tag = chain
+            view.tag = chain.name
             return view
         }
     }
