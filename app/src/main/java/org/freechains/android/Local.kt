@@ -1,10 +1,5 @@
 package org.freechains.android
 
-import android.R
-import android.app.Activity
-import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Toast
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
@@ -22,12 +17,22 @@ data class Host (
 )
 
 @Serializable
+data class Chain (
+    var name  : String,
+    var heads : List<String>
+)
+
+@Serializable
 data class Local (
     var hosts  : List<Host>,
-    var chains : List<String>
+    var chains : List<Chain>
 )
 
 var LOCAL: Local? = null
+
+fun Local_reset () {
+    File(fsRoot!! + "/" + "local.json").delete()
+}
 
 fun Local_load () {
     val file = File(fsRoot!! + "/" + "local.json")
@@ -87,14 +92,17 @@ fun Local.hostsReload (f: ()->Unit) {
 @Synchronized
 fun Local.chainsReload (f: ()->Unit) {
     thread {
-        val chains = main_(arrayOf("chains","list")).let {
+        val names = main_(arrayOf("chains","list")).let {
             if (it.isEmpty()) {
                 emptyList()
             } else {
                 it.split(' ')
             }
         }
-        //Thread.sleep(5000)
+        val chains = names.map {
+            val heads = main_(arrayOf("chain","heads",it,"all")).split(' ')
+            Chain(it, heads)
+        }
         synchronized (this) {
             this.chains = chains
             this.save()

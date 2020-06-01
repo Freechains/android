@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         fsRoot = applicationContext.filesDir.toString()
         //println(fsRoot)
+        //Local_reset()
         Local_load()
 
         val table = findViewById<View>(R.id.table)

@@ -16,6 +16,35 @@ class ChainsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chains)
+
+        findViewById<ExpandableListView>(R.id.list).let {
+            it.setAdapter(this.adapter)
+            it.setOnItemLongClickListener { _,view,_,_ ->
+                if (view is LinearLayout && view.tag is String) {
+                    val chain = view.tag.toString()
+                    AlertDialog.Builder(ctx)
+                        .setTitle("Leave $chain?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, { _, _ ->
+                            thread {
+                                main_(arrayOf("chains", "leave", chain))
+                                runOnUiThread {
+                                    ctx.update()
+                                }
+                            }
+                            Toast.makeText(
+                                applicationContext,
+                                "Left $chain.", Toast.LENGTH_LONG
+                            ).show()
+                        })
+                        .setNegativeButton(android.R.string.no, null).show()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
         this.update()
     }
 
@@ -24,40 +53,54 @@ class ChainsActivity : AppCompatActivity() {
             runOnUiThread {
                 findViewById<ListView>(R.id.list).visibility = View.VISIBLE
                 findViewById<View>    (R.id.wait).visibility = View.INVISIBLE
-
-                findViewById<ListView>(R.id.list).let {
-                    it.setAdapter (
-                        ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,LOCAL!!.chains)
-                    )
-                    it.setOnItemClickListener { _,_,i,_ ->
-                        val chain = LOCAL!!.chains[i]
-                        Toast.makeText (
-                            applicationContext,
-                            "Clicked $chain.", Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    it.setOnItemLongClickListener { _,_,i,_ ->
-                        val chain = LOCAL!!.chains[i]
-                        AlertDialog.Builder(ctx)
-                            .setTitle("Leave $chain?")
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setPositiveButton(android.R.string.yes, { _, _ ->
-                                thread {
-                                    main_(arrayOf("chains", "leave", chain))
-                                    runOnUiThread {
-                                        ctx.update()
-                                    }
-                                }
-                                Toast.makeText(
-                                    applicationContext,
-                                    "Removed $chain.", Toast.LENGTH_LONG
-                                ).show()
-                            })
-                            .setNegativeButton(android.R.string.no, null).show()
-                        true
-                    }
-                }
             }
+        }
+    }
+
+    private val adapter = object : BaseExpandableListAdapter () {
+        override fun hasStableIds(): Boolean {
+            return false
+        }
+        override fun isChildSelectable (i: Int, j: Int): Boolean {
+            return true
+        }
+        override fun getChild (i: Int, j: Int): Any? {
+            return LOCAL!!.chains[i].heads[j]
+        }
+        override fun getChildId (i: Int, j: Int): Long {
+            return i*10+j.toLong()
+        }
+        override fun getChildView (i: Int, j: Int, isLast: Boolean,
+                                   convertView: View?, parent: ViewGroup?): View? {
+            val head = LOCAL!!.chains[i].heads[j]
+            val view = View.inflate(ctx, android.R.layout.activity_list_item,null)
+            view.findViewById<TextView>(android.R.id.text1).text = head
+            view.setOnClickListener {
+                Toast.makeText (
+                    applicationContext,
+                    "Clicked $head.", Toast.LENGTH_LONG
+                ).show()
+            }
+            return view
+        }
+        override fun getChildrenCount (i: Int): Int {
+            return 1
+        }
+        override fun getGroupCount(): Int {
+            return LOCAL!!.chains.size
+        }
+        override fun getGroup (i: Int): Any {
+            return LOCAL!!.chains[i]
+        }
+        override fun getGroupId (i: Int): Long {
+            return i.toLong()
+        }
+        override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
+            val view = View.inflate(ctx, android.R.layout.activity_list_item,null)
+            val chain = LOCAL!!.chains[i].name
+            view.findViewById<TextView>(android.R.id.text1).text = chain
+            view.tag = chain
+            return view
         }
     }
 

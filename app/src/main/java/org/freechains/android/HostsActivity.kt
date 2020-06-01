@@ -71,7 +71,7 @@ class HostsActivity : AppCompatActivity() {
             val view = View.inflate(ctx, R.layout.activity_hosts_chain,null)
             val chain = LOCAL!!.hosts[i].chains[j]
             view.findViewById<TextView>(R.id.chain).text = chain
-            if (!LOCAL!!.chains.contains(LOCAL!!.hosts[i].chains[j])) {
+            if (!LOCAL!!.chains.any { it.name == LOCAL!!.hosts[i].chains[j] }) {
                 view.findViewById<ImageButton>(R.id.add).let {
                     it.visibility = View.VISIBLE
                     it.tag = chain
