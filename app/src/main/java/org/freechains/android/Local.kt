@@ -56,8 +56,8 @@ fun Local.hostsAdd (name: String, f: ()->Unit) {
 }
 
 @Synchronized
-fun Local.hostsRem (i: Int, f: ()->Unit) {
-    this.hosts = this.hosts.filter { it.name != this.hosts[i].name }
+fun Local.hostsRem (host: String, f: ()->Unit) {
+    this.hosts = this.hosts.filter { it.name != host }
     this.save()
     f()
 }

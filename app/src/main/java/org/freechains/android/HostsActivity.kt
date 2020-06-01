@@ -21,33 +21,29 @@ class HostsActivity : AppCompatActivity() {
 
         findViewById<ExpandableListView>(R.id.list).let {
             it.setAdapter(this.adapter)
-            it.setOnItemLongClickListener(OnItemLongClickListener { _,_,_,id ->
-                val type = ExpandableListView.getPackedPositionType(id);
-                val i = ExpandableListView.getPackedPositionGroup(id);
-                when (type) {
-                    ExpandableListView.PACKED_POSITION_TYPE_GROUP -> {
-                        val host = LOCAL!!.hosts[i].name
-                        AlertDialog.Builder(this)
-                            .setTitle("Remove $host?")
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setPositiveButton(android.R.string.yes, { _, _ ->
-                                LOCAL!!.hostsRem(i) {
-                                    runOnUiThread {
-                                        this.adapter.notifyDataSetChanged()
-                                    }
+            it.setOnItemLongClickListener { _,view,x,y ->
+                if (view is LinearLayout && view.tag is String) {
+                    val host = view.tag.toString()
+                    AlertDialog.Builder(ctx)
+                        .setTitle("Remove $host?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, { _, _ ->
+                            LOCAL!!.hostsRem(host) {
+                                runOnUiThread {
+                                    ctx.adapter.notifyDataSetChanged()
                                 }
-                                Toast.makeText (
-                                    applicationContext,
-                                    "Removed $host.", Toast.LENGTH_LONG
-                                ).show()
-                            })
-                            .setNegativeButton(android.R.string.no, null).show()
-                        true
-                    }
-                    //ExpandableListView.PACKED_POSITION_TYPE_CHILD
-                    else -> false
+                            }
+                            Toast.makeText(
+                                applicationContext,
+                                "Removed $host.", Toast.LENGTH_LONG
+                            ).show()
+                        })
+                        .setNegativeButton(android.R.string.no, null).show()
+                    true
+                } else {
+                    false
                 }
-            })
+            }
         }
 
         LOCAL!!.hostsReload() {
@@ -97,8 +93,9 @@ class HostsActivity : AppCompatActivity() {
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.activity_hosts_host,null)
-            view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].name
             view.findViewById<TextView>(R.id.ping).text = LOCAL!!.hosts[i].ping
+            view.findViewById<TextView>(R.id.host).text = LOCAL!!.hosts[i].name
+            view.tag = LOCAL!!.hosts[i].name
             return view
         }
     }

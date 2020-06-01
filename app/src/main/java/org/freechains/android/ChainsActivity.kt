@@ -4,15 +4,15 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.ListView
-import android.widget.Toast
+import android.view.ViewGroup
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import org.freechains.common.main_
 import kotlin.concurrent.thread
 
 class ChainsActivity : AppCompatActivity() {
+    val ctx = this
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chains)
@@ -20,38 +20,48 @@ class ChainsActivity : AppCompatActivity() {
     }
 
     fun update () {
-        val list = findViewById<ListView>(R.id.table)
-        val wait = findViewById<View>(R.id.wait)
-
-        list.visibility = View.INVISIBLE
-        wait.visibility = View.VISIBLE
-
-        LOCAL!!.chainsReload() {
+        LOCAL!!.chainsReload () {
             runOnUiThread {
-                list.setAdapter (
-                    ArrayAdapter<String> (
-                        this,
-                        android.R.layout.simple_list_item_1,
-                        LOCAL!!.chains
-                    )
-                )
-                list.setOnItemClickListener { parent, view, position, id ->
-                    Toast.makeText (
-                        applicationContext,
-                        "Click ListItem Number $position", Toast.LENGTH_LONG
-                    ).show()
-                }
+                findViewById<ListView>(R.id.list).visibility = View.VISIBLE
+                findViewById<View>    (R.id.wait).visibility = View.INVISIBLE
 
-                wait.visibility = View.INVISIBLE
-                list.visibility = View.VISIBLE
+                findViewById<ListView>(R.id.list).let {
+                    it.setAdapter (
+                        ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,LOCAL!!.chains)
+                    )
+                    it.setOnItemClickListener { _,_,i,_ ->
+                        val chain = LOCAL!!.chains[i]
+                        Toast.makeText (
+                            applicationContext,
+                            "Clicked $chain.", Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    it.setOnItemLongClickListener { _,_,i,_ ->
+                        val chain = LOCAL!!.chains[i]
+                        AlertDialog.Builder(ctx)
+                            .setTitle("Leave $chain?")
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setPositiveButton(android.R.string.yes, { _, _ ->
+                                thread {
+                                    main_(arrayOf("chains", "leave", chain))
+                                    runOnUiThread {
+                                        ctx.update()
+                                    }
+                                }
+                                Toast.makeText(
+                                    applicationContext,
+                                    "Removed $chain.", Toast.LENGTH_LONG
+                                ).show()
+                            })
+                            .setNegativeButton(android.R.string.no, null).show()
+                        true
+                    }
+                }
             }
         }
     }
 
     fun onClick_join (view: View) {
-        val list = findViewById<ListView>(R.id.table)
-        val wait = findViewById<View>(R.id.wait)
-
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Join chain...")
 
@@ -61,8 +71,8 @@ class ChainsActivity : AppCompatActivity() {
         builder.setView(input)
         builder.setNegativeButton ("Cancel", null)
         builder.setPositiveButton("OK") { _,_ ->
-            list!!.visibility = View.INVISIBLE
-            wait!!.visibility = View.VISIBLE
+            findViewById<ListView>(R.id.list).visibility = View.INVISIBLE
+            findViewById<View>    (R.id.wait).visibility = View.VISIBLE
 
             val chain = input.text.toString()
             thread {
