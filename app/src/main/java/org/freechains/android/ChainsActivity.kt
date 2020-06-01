@@ -65,26 +65,26 @@ class ChainsActivity : AppCompatActivity() {
             return true
         }
         override fun getChild (i: Int, j: Int): Any? {
-            return LOCAL!!.chains[i].heads[j]
+            return LOCAL!!.chains[i].blocks[j]
         }
         override fun getChildId (i: Int, j: Int): Long {
             return i*10+j.toLong()
         }
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
-            val head = LOCAL!!.chains[i].heads[j]
+            val block = LOCAL!!.chains[i].blocks[j].block2id()
             val view = View.inflate(ctx, R.layout.simple,null)
-            view.findViewById<TextView>(android.R.id.text1).text = head
+            view.findViewById<TextView>(android.R.id.text1).text = block
             view.setOnClickListener {
                 Toast.makeText (
                     applicationContext,
-                    "Clicked $head.", Toast.LENGTH_LONG
+                    "Clicked $block.", Toast.LENGTH_LONG
                 ).show()
             }
             return view
         }
         override fun getChildrenCount (i: Int): Int {
-            return 1
+            return LOCAL!!.chains[i].blocks.size
         }
         override fun getGroupCount(): Int {
             return LOCAL!!.chains.size

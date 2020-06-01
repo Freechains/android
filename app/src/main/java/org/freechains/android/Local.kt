@@ -30,8 +30,9 @@ data class Host (
 
 @Serializable
 data class Chain (
-    var name  : String,
-    var heads : List<String>
+    var name   : String,
+    var heads  : List<String>,
+    var blocks : List<String>
 )
 
 @Serializable
@@ -112,8 +113,10 @@ fun Local.chainsReload (f: ()->Unit) {
             }
         }
         val chains = names.map {
-            val heads = main_(arrayOf("chain","heads",it,"all")).split(' ')
-            Chain(it, heads)
+            val heads  = main_(arrayOf("chain","heads",it,"all")).split(' ')
+            val gen    = main_(arrayOf("chain","genesis",it))
+            val blocks = main_(arrayOf("chain","traverse",it,"all",gen)).split(' ')
+            Chain(it, heads, blocks.reversed().plus(gen))
         }
         synchronized (this) {
             this.chains = chains
