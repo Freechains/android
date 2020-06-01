@@ -98,7 +98,7 @@ class ChainsActivity : AppCompatActivity() {
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.activity_chains_chain,null)
             val chain = LOCAL!!.chains[i]
-            view.findViewById<TextView>(R.id.chain).text = chain.name
+            view.findViewById<TextView>(R.id.chain).text = chain.name.chain2id()
             view.findViewById<TextView>(R.id.heads).text = chain.heads
                 .map { it.block2id() }
                 .joinToString("\n")

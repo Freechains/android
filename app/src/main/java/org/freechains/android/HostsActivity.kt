@@ -70,7 +70,7 @@ class HostsActivity : AppCompatActivity() {
                                    convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(ctx, R.layout.activity_hosts_chain,null)
             val chain = LOCAL!!.hosts[i].chains[j]
-            view.findViewById<TextView>(R.id.chain).text = chain
+            view.findViewById<TextView>(R.id.chain).text = chain.toString().chain2id()
             if (!LOCAL!!.chains.any { it.name == LOCAL!!.hosts[i].chains[j] }) {
                 view.findViewById<ImageButton>(R.id.add).let {
                     it.visibility = View.VISIBLE
@@ -128,7 +128,7 @@ class HostsActivity : AppCompatActivity() {
 
     fun onClick_add_chain (view: View) {
         view.visibility = View.INVISIBLE
-        val chain = view.tag as String
+        val chain = view.tag.toString().chain2id()
         thread {
             main_(arrayOf("chains", "join", chain))
             runOnUiThread {
