@@ -4,9 +4,11 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import org.freechains.common.main
+import org.freechains.common.main_
 import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
@@ -66,10 +68,66 @@ class MainActivity : AppCompatActivity() {
         )
     }
     fun onClick_Sync(view: View) {
+        val hosts  = LOCAL!!.hosts
+        val chains = LOCAL!!.chains
+
+        val progress = findViewById<ProgressBar>(R.id.progress)
+        progress.visibility = View.VISIBLE
+        progress.max = hosts.map {
+            it.chains.count {
+                chains.any { chain ->
+                    chain.name == it
+                }
+            }
+        }.sum() * 2
+
         Toast.makeText(
             applicationContext,
-            "!!! SYNC !!!", Toast.LENGTH_LONG
+            "Total steps: ${progress.max}", Toast.LENGTH_LONG
         ).show()
+
+        var min = 0
+        var max = 0
+
+        for (chain in chains) {
+            // parallalelize accross chains
+            thread {
+                val hs = hosts.filter { it.chains.contains(chain.name) }
+                // but not inside each chain
+                for (h in hs) {
+                    fun f (dir: String, v: String) {
+                        //println(v)
+                        val (v1,v2) = Regex("(\\d+) / (\\d+)").find(v)!!.destructured
+                        min += v1.toInt()
+                        max += v2.toInt()
+                        runOnUiThread {
+                            progress.progress += 1
+                            if (v1.toInt() > 0) {
+                                Toast.makeText(
+                                    applicationContext,
+                                    "${chain.name}: $v1 $dir", Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                    main_(arrayOf("peer","send",h.name,chain.name)).let {
+                        f("->", it)
+                    }
+                    main_(arrayOf("peer","recv",h.name,chain.name)).let {
+                        f("<-", it)
+                    }
+                    runOnUiThread {
+                        if (progress.progress == progress.max) {
+                            progress.visibility = View.INVISIBLE
+                            Toast.makeText(
+                                applicationContext,
+                                "Synchronized $min blocks.", Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+            }
+        }
     }
     fun onClick_Reset (view: View) {
         AlertDialog.Builder(this)
