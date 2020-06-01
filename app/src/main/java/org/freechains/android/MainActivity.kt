@@ -65,6 +65,12 @@ class MainActivity : AppCompatActivity() {
             Intent(this, ChainsActivity::class.java)
         )
     }
+    fun onClick_Sync(view: View) {
+        Toast.makeText(
+            applicationContext,
+            "!!! SYNC !!!", Toast.LENGTH_LONG
+        ).show()
+    }
     fun onClick_Reset (view: View) {
         AlertDialog.Builder(this)
             .setTitle("!!! Reset Freechains !!!")
