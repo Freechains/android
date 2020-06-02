@@ -20,8 +20,11 @@
         android:id="@+id/heads"
         android:layout_width="0px"
         android:layout_height="wrap_content"
+        android:layout_gravity="center"
         android:layout_weight="1"
+        android:foregroundGravity="center"
         android:gravity="center_vertical"
         android:minHeight="?attr/listPreferredItemHeightSmall"
-        android:textAppearance="?android:attr/textAppearanceListItemSmall" />
+        android:textAppearance="?android:attr/textAppearanceListItemSmall"
+        android:textSize="10sp" />
 </LinearLayout>

@@ -1,17 +1,23 @@
 package org.freechains.android
 
 import android.app.AlertDialog
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
 import org.freechains.common.main
 import org.freechains.common.main_
 import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,6 +29,27 @@ class MainActivity : AppCompatActivity() {
     }
     fun start () {
         main(arrayOf("host","start","/data/"))
+    }
+
+    fun showNotification (title: String, message: String) {
+        val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("YOUR_CHANNEL_ID",
+                "YOUR_CHANNEL_NAME",
+                NotificationManager.IMPORTANCE_DEFAULT)
+            channel.description = "YOUR_NOTIFICATION_CHANNEL_DESCRIPTION"
+            mNotificationManager.createNotificationChannel(channel)
+        }
+        val mBuilder = NotificationCompat.Builder(applicationContext, "YOUR_CHANNEL_ID")
+            .setSmallIcon(R.drawable.ic_freechains_notify) // notification icon
+            .setContentTitle(title) // title for notification
+            .setContentText(message)// message for notification
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setAutoCancel(true) // clear notification after click
+        val intent = Intent(applicationContext, MainActivity::class.java)
+        val pi = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        mBuilder.setContentIntent(pi)
+        mNotificationManager.notify(0, mBuilder.build())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,16 +108,20 @@ class MainActivity : AppCompatActivity() {
             }
         }.sum() * 2
 
-        Toast.makeText(
-            applicationContext,
-            "Total steps: ${progress.max}", Toast.LENGTH_LONG
-        ).show()
+        //Toast.makeText(
+        //    applicationContext,
+        //    "Total steps: ${progress.max}", Toast.LENGTH_LONG
+        //).show()
 
         var min = 0
         var max = 0
+        val notis = mutableMapOf<String,Int>()
 
         for (chain in chains) {
             // parallalelize accross chains
+            synchronized (this) {
+                notis[chain.name] = 0
+            }
             thread {
                 val hs = hosts.filter { it.chains.contains(chain.name) }
                 // but not inside each chain
@@ -100,6 +131,11 @@ class MainActivity : AppCompatActivity() {
                         val (v1,v2) = Regex("(\\d+) / (\\d+)").find(v)!!.destructured
                         min += v1.toInt()
                         max += v2.toInt()
+                        if (dir == "<-") {
+                            synchronized (this) {
+                                notis[chain.name] = notis[chain.name]!! + v1.toInt()
+                            }
+                        }
                         runOnUiThread {
                             progress.progress += 1
                             if (v1.toInt() > 0) {
@@ -118,6 +154,13 @@ class MainActivity : AppCompatActivity() {
                     }
                     runOnUiThread {
                         if (progress.progress == progress.max) {
+                            val noti = notis.toList()
+                                .filter { it.second > 0 }
+                                .map { "${it.second} ${it.first}" }
+                                .joinToString("\n")
+                            if (noti.isNotEmpty()) {
+                                this.showNotification("New blocks:", noti)
+                            }
                             progress.visibility = View.INVISIBLE
                             Toast.makeText(
                                 applicationContext,
@@ -129,6 +172,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
     fun onClick_Reset (view: View) {
         AlertDialog.Builder(this)
             .setTitle("!!! Reset Freechains !!!")
