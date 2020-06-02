@@ -34,13 +34,13 @@ class MainActivity : AppCompatActivity() {
     fun showNotification (title: String, message: String) {
         val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("YOUR_CHANNEL_ID",
-                "YOUR_CHANNEL_NAME",
+            val channel = NotificationChannel("FREECHAINS_CHANNEL_ID",
+                "FREECHAINS_CHANNEL_NAME",
                 NotificationManager.IMPORTANCE_DEFAULT)
-            channel.description = "YOUR_NOTIFICATION_CHANNEL_DESCRIPTION"
+            channel.description = "FREECHAINS_NOTIFICATION_CHANNEL_DESCRIPTION"
             mNotificationManager.createNotificationChannel(channel)
         }
-        val mBuilder = NotificationCompat.Builder(applicationContext, "YOUR_CHANNEL_ID")
+        val mBuilder = NotificationCompat.Builder(applicationContext, "FREECHAINS_CHANNEL_ID")
             .setSmallIcon(R.drawable.ic_freechains_notify) // notification icon
             .setContentTitle(title) // title for notification
             .setContentText(message)// message for notification
@@ -81,6 +81,12 @@ class MainActivity : AppCompatActivity() {
                 wait.visibility = View.INVISIBLE
                 table.visibility = View.VISIBLE
             }
+            while (true) {
+                runOnUiThread {
+                    this.onClick_Sync(wait) // wait: any view since its not used
+                }
+                Thread.sleep(30000)
+            }
         }
     }
 
@@ -95,11 +101,17 @@ class MainActivity : AppCompatActivity() {
         )
     }
     fun onClick_Sync(view: View) {
+        this.sync(true)
+    }
+
+    fun sync (showProgress: Boolean) {
         val hosts  = LOCAL!!.hosts
         val chains = LOCAL!!.chains
 
         val progress = findViewById<ProgressBar>(R.id.progress)
-        progress.visibility = View.VISIBLE
+        if (showProgress) {
+            progress.visibility = View.VISIBLE
+        }
         progress.max = hosts.map {
             it.chains.count {
                 chains.any { chain ->
@@ -138,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         runOnUiThread {
                             progress.progress += 1
-                            if (v1.toInt() > 0) {
+                            if (showProgress && v1.toInt()>0) {
                                 Toast.makeText(
                                     applicationContext,
                                     "${chain.name}: $v1 $dir", Toast.LENGTH_LONG
@@ -161,11 +173,13 @@ class MainActivity : AppCompatActivity() {
                             if (noti.isNotEmpty()) {
                                 this.showNotification("New blocks:", noti)
                             }
-                            progress.visibility = View.INVISIBLE
-                            Toast.makeText(
-                                applicationContext,
-                                "Synchronized $min blocks.", Toast.LENGTH_LONG
-                            ).show()
+                            if (showProgress) {
+                                progress.visibility = View.INVISIBLE
+                                Toast.makeText(
+                                    applicationContext,
+                                    "Synchronized $min blocks.", Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     }
                 }
