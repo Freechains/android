@@ -12,12 +12,15 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
-import org.freechains.common.main
-import org.freechains.common.main_
+import org.freechains.common.*
 import org.freechains.platform.fsRoot
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.File
+import java.net.Socket
 import kotlin.concurrent.thread
 
+const val T5m_sync = 30*hour
 
 class MainActivity : AppCompatActivity() {
 
@@ -81,11 +84,26 @@ class MainActivity : AppCompatActivity() {
                 wait.visibility = View.INVISIBLE
                 table.visibility = View.VISIBLE
             }
-            while (true) {
-                runOnUiThread {
-                    this.onClick_Sync(wait) // wait: any view since its not used
+            thread {
+                while (true) {
+                    runOnUiThread {
+                        this.onClick_Sync(wait) // wait: any view since its not used
+                    }
+                    Thread.sleep(T5m_sync)
                 }
-                Thread.sleep(30000)
+            }
+            thread {
+                val socket = Socket("localhost", PORT_8330)
+                val writer = DataOutputStream(socket.getOutputStream()!!)
+                val reader = DataInputStream(socket.getInputStream()!!)
+                writer.writeLineX("$PRE chains listen")
+                while (true) {
+                    val v = reader.readLineX()
+                    val (n) = Regex("(\\d+) .*").find(v)!!.destructured
+                    if (n.toInt() > 0) {
+                        this.showNotification("New blocks:", v)
+                    }
+                }
             }
         }
     }
