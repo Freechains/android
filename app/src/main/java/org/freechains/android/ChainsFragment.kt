@@ -16,16 +16,20 @@ class ChainsFragment : Fragment ()
     val outer = this
     lateinit var main: MainActivity
 
+    override fun onDestroyView() {
+        this.main.adapters.remove(this.adapter)
+        super.onDestroyView()
+    }
+
     override fun onCreateView (inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        main = this.activity as MainActivity
+        this.main = this.activity as MainActivity
+        this.main.adapters.add(this.adapter)
         inflater.inflate(R.layout.frag_chains, container, false).let { view ->
             view.findViewById<ExpandableListView>(R.id.list).let {
                 it.setAdapter(this.adapter)
                 it.setOnItemLongClickListener { _,view,_,_ ->
                     if (view is LinearLayout && view.tag is String) {
-                        this.main.chains_leave_ask(view.tag.toString()) {
-                            this.adapter.notifyDataSetChanged()
-                        }
+                        this.main.chains_leave_ask(view.tag.toString())
                         true
                     } else {
                         false
@@ -34,16 +38,14 @@ class ChainsFragment : Fragment ()
             }
             view.findViewById<FloatingActionButton>(R.id.but_join).let {
                 it.setOnClickListener {
-                    this.main.chains_join_ask() {
-                        this.adapter.notifyDataSetChanged()
-                    }
+                    this.main.chains_join_ask()
                 }
             }
             return view
         }
     }
 
-    private val adapter = object : BaseExpandableListAdapter() {
+    private val adapter = object : BaseExpandableListAdapter () {
         override fun hasStableIds(): Boolean {
             return false
         }
@@ -60,8 +62,8 @@ class ChainsFragment : Fragment ()
                                    convertView: View?, parent: ViewGroup?): View? {
             val chain = LOCAL!!.chains[i]
             val block = chain.blocks[j]
-            val view = View.inflate(outer.main, R.layout.simple,null)
-            view.findViewById<TextView>(R.id.text).text = block.block2id()
+            val view = View.inflate(outer.main, android.R.layout.activity_list_item,null)
+            view.findViewById<TextView>(android.R.id.text1).text = block.block2id()
 
             view.setOnLongClickListener {
                 outer.main.chain_get(chain.name, "block", block)

@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.WindowManager
+import android.widget.BaseExpandableListAdapter
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
@@ -33,10 +34,23 @@ const val T5m_sync = 30*hour
 class MainActivity : AppCompatActivity ()
 {
     var isActive = true
+    val adapters: MutableSet<BaseExpandableListAdapter> = mutableSetOf()
+
+    fun notify (tp: String) {
+        this.adapters.forEach {
+            it.notifyDataSetChanged()
+        }
+    }
+
     override fun onPause()  { super.onPause()  ; this.isActive=false }
     override fun onResume() { super.onResume() ; this.isActive=true  }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onDestroy () {
+        main_(arrayOf("host", "stop"))
+        super.onDestroy()
+    }
+
+    override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.act_main)
         findNavController(R.id.nav_host_fragment).let {
@@ -52,22 +66,52 @@ class MainActivity : AppCompatActivity ()
         //println(fsRoot)
         //Local_delete()
 
-        if (File(fsRoot!!,"/data/").exists()) {
-            Local_load()
-        } else {
-            this.host_recreate()
+        if (!Local_exists()) {
+            File(fsRoot!!, "/").deleteRecursively()
+            main_(arrayOf("host","create","/data/"))
         }
-        this.host_start_bg()
+        Local_load()
+
+        this.setWaiting(true)
+
+        // background start
+        val wait = findViewById<View>(R.id.wait)
+        wait.visibility = View.VISIBLE
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
         thread {
-            Thread.sleep(500)
+            main_(arrayOf("host","start","/data/"))
+        }
+        Thread.sleep(500)
+
+        this.setWaiting(false)
+
+        // background sync/reload
+        thread {
             while (true) {
-                try {
+                LOCAL!!.bg_reloadPeers()()
+                this.runOnUiThread {
+                    this.notify("update views w/ peer pings")
+                    this.peers_sync(false)
+                }
+                Thread.sleep(T5m_sync)
+            }
+        }
+
+        // background listen
+        thread {
+            val socket = Socket("localhost", PORT_8330)
+            val writer = DataOutputStream(socket.getOutputStream()!!)
+            val reader = DataInputStream(socket.getInputStream()!!)
+            writer.writeLineX("$PRE chains listen")
+            while (true) {
+                val v = reader.readLineX()
+                val (n) = Regex("(\\d+) .*").find(v)!!.destructured
+                if (n.toInt() > 0) {
+                    this.showNotification("New blocks:", v)
+                    LOCAL!!.bg_reloadChains()()
                     this.runOnUiThread {
-                        this.peers_sync(false)
+                        this.notify("update views w/ contents of chains")
                     }
-                    Thread.sleep(T5m_sync)
-                } catch (e: Throwable) {
-                    // may fail on "Reset": just try again
                 }
             }
         }
@@ -112,95 +156,49 @@ class MainActivity : AppCompatActivity ()
 
     ////////////////////////////////////////
 
-    fun host_start_bg () {
-        thread {
-            this.runOnUiThread {
-                this.setWaiting(true)
-            }
-            thread {
-                main_(arrayOf("host","start","/data/"))
-            }
-            Thread.sleep(500)
-            this.runOnUiThread {
-                LOCAL!!.reloadPeers() {}
-                LOCAL!!.reloadChains() {}
-                this.setWaiting(false)
-            }
-            thread {
-                try {
-                    val socket = Socket("localhost", PORT_8330)
-                    val writer = DataOutputStream(socket.getOutputStream()!!)
-                    val reader = DataInputStream(socket.getInputStream()!!)
-                    writer.writeLineX("$PRE chains listen")
-                    while (true) {
-                        val v = reader.readLineX()
-                        val (n) = Regex("(\\d+) .*").find(v)!!.destructured
-                        if (n.toInt() > 0) {
-                            this.showNotification("New blocks:", v)
-                        }
-                    }
-                } catch (e: Throwable) {
-                    // may fail on "Reset": do nothing since it will all restart
-                }
-            }
-        }
-    }
-
-    fun host_recreate () {
-        main_(arrayOf("host", "stop"))
-        File(fsRoot!!, "/").deleteRecursively()
-        main_(arrayOf("host","create","/data/"))
-        Local_load()
-    }
-
     fun host_recreate_ask () {
         AlertDialog.Builder(this)
             .setTitle("!!! Reset Freechains !!!")
             .setMessage("Delete all data?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
+                Local_delete()
+                this.finishAffinity()
                 this.setWaiting(true)
-                thread {
-                    this.host_recreate()
-                    this.host_start_bg()
-                    Thread.sleep(500)
-                    this.runOnUiThread {
-                        this.setWaiting(false)
-                        Toast.makeText(
-                            applicationContext,
-                            "Freechains reset OK!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+                Toast.makeText(
+                    applicationContext,
+                    "Please, restart Freechains...",
+                    Toast.LENGTH_SHORT
+                ).show()
             })
             .setNegativeButton(android.R.string.no, null).show()
     }
 
     ////////////////////////////////////////
 
-    fun chains_join_ask (cb: ()->Unit) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Join chain:")
-
+    fun chains_join_ask () {
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
 
-        builder.setView(input)
-        builder.setNegativeButton ("Cancel", null)
-        builder.setPositiveButton("OK") { _,_ ->
-            val chain = input.text.toString()
-            this.chains_join(chain, cb)
-        }
-
-        builder.show()
+        AlertDialog.Builder(this)
+            .setTitle("Join chain:")
+            .setView(input)
+            .setNegativeButton ("Cancel", null)
+            .setPositiveButton("OK") { _,_ ->
+                this.bg_chains_join(input.text.toString())
+            }
+            .show()
     }
 
-    fun chains_join (chain: String, cb: ()->Unit) {
-        thread {
+    fun bg_chains_join (chain: String) : Wait {
+        val t = thread {
             main_(arrayOf("chains", "join", chain))
-            LOCAL!!.reloadChains {
-                this.runOnUiThread { cb() }
+            this.runOnUiThread {
+                LOCAL!!.bg_reloadChains()()
+                this.runOnUiThread {
+                    this.notify("update view w/ list of chains")
+                }
+                this.peers_sync(true)
             }
         }
         Toast.makeText(
@@ -208,17 +206,19 @@ class MainActivity : AppCompatActivity ()
             "Added $chain.",
             Toast.LENGTH_SHORT
         ).show()
+        return { t.join() }
     }
 
-    fun chains_leave_ask (chain: String, cb: ()->Unit) {
+    fun chains_leave_ask (chain: String) {
         AlertDialog.Builder(this)
             .setTitle("Leave $chain?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
                 thread {
                     main_(arrayOf("chains", "leave", chain))
-                    LOCAL!!.reloadChains() {
-                        this.runOnUiThread { cb() }
+                    LOCAL!!.bg_reloadChains()()
+                    this.runOnUiThread {
+                        this.notify("update views w/ list of chains")
                     }
                 }
                 Toast.makeText(
@@ -248,37 +248,38 @@ class MainActivity : AppCompatActivity ()
     ////////////////////////////////////////
 
     fun peers_add_ask (cb: ()->Unit) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Add peer:")
-
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
 
-        builder.setView(input)
-        builder.setNegativeButton ("Cancel", null)
-        builder.setPositiveButton("OK") { _,_ ->
-            val host = input.text.toString()
-            LOCAL!!.peersAdd(host) {
-                this.runOnUiThread { cb() }
+        AlertDialog.Builder(this)
+            .setTitle("Add peer:")
+            .setView(input)
+            .setNegativeButton ("Cancel", null)
+            .setPositiveButton("OK") { _,_ ->
+                val host = input.text.toString()
+                thread {
+                    LOCAL!!.bg_peersAdd(host)()
+                    this.runOnUiThread {
+                        this.notify("update views w/ list of peers")
+                        this.peers_sync(true)
+                    }
+                }
+                Toast.makeText(
+                    applicationContext,
+                    "Added peer $host.",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            Toast.makeText(
-                applicationContext,
-                "Added peer $host.",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-
-        builder.show()
+            .show()
     }
 
-    fun peers_remove_ask (host: String, cb: ()->Unit) {
+    fun peers_remove_ask (host: String) {
         AlertDialog.Builder(this)
             .setTitle("Remove peer $host?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.peersRem(host) {
-                    this.runOnUiThread { cb() }
-                }
+                LOCAL!!.peersRem(host)
+                this.notify("update views w/ list of peers")
                 Toast.makeText(
                     applicationContext,
                     "Removed peer $host.", Toast.LENGTH_LONG
@@ -320,12 +321,12 @@ class MainActivity : AppCompatActivity ()
 
         var min = 0
         var max = 0
-        val notis = mutableMapOf<String,Int>()
+        val counts = mutableMapOf<String,Int>()
 
         for (chain in chains) {
             // parallalelize accross chains
             synchronized (this) {
-                notis[chain.name] = 0
+                counts[chain.name] = 0
             }
             thread {
                 val hs = hosts.filter { it.chains.contains(chain.name) }
@@ -338,7 +339,7 @@ class MainActivity : AppCompatActivity ()
                         max += v2.toInt()
                         if (dir == "<-") {
                             synchronized (this) {
-                                notis[chain.name] = notis[chain.name]!! + v1.toInt()
+                                counts[chain.name] = counts[chain.name]!! + v1.toInt()
                             }
                         }
                         this.runOnUiThread {
@@ -359,12 +360,18 @@ class MainActivity : AppCompatActivity ()
                     }
                     this.runOnUiThread {
                         if (progress.progress == progress.max) {
-                            val noti = notis.toList()
+                            val news = counts.toList()
                                 .filter { it.second > 0 }
                                 .map { "${it.second} ${it.first}" }
                                 .joinToString("\n")
-                            if (noti.isNotEmpty()) {
-                                this.showNotification("New blocks:", noti)
+                            if (news.isNotEmpty()) {
+                                this.showNotification("New blocks:", news)
+                                thread {
+                                    LOCAL!!.bg_reloadChains()()
+                                    this.runOnUiThread {
+                                        this.notify("update views w/ contents of chains")
+                                    }
+                                }
                             }
                             if (showProgress) {
                                 progress.visibility = View.INVISIBLE

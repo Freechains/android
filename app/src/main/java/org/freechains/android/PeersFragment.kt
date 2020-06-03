@@ -13,16 +13,20 @@ class PeersFragment : Fragment ()
     val outer = this
     lateinit var main: MainActivity
 
+    override fun onDestroyView() {
+        this.main.adapters.remove(this.adapter)
+        super.onDestroyView()
+    }
+
     override fun onCreateView (inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        main = this.activity as MainActivity
+        this.main = this.activity as MainActivity
+        this.main.adapters.add(this.adapter)
         inflater.inflate(R.layout.frag_peers, container, false).let { view ->
             view.findViewById<ExpandableListView>(R.id.list).let {
                 it.setAdapter(this.adapter)
                 it.setOnItemLongClickListener { _,view,_,_ ->
                     if (view is LinearLayout && view.tag is String) {
-                        this.main.peers_remove_ask(view.tag.toString()) {
-                            this.adapter.notifyDataSetChanged()
-                        }
+                        this.main.peers_remove_ask(view.tag.toString())
                         true
                     } else {
                         false
@@ -62,12 +66,8 @@ class PeersFragment : Fragment ()
                 view.findViewById<ImageButton>(R.id.add).let {
                     it.visibility = View.VISIBLE
                     it.setOnClickListener {
-                        outer.main.chains_join(chain) {
-                            println("added: $chain")
-                            this.notifyDataSetChanged()
-                        }
+                        outer.main.bg_chains_join(chain)
                     }
-
                 }
             }
             return view
