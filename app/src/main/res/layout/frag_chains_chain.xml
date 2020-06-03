@@ -7,7 +7,7 @@
     <TextView
         android:id="@+id/chain"
         android:layout_width="0px"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_weight="2"
         android:gravity="center_vertical"
         android:minHeight="?attr/listPreferredItemHeightSmall"
@@ -19,10 +19,8 @@
     <TextView
         android:id="@+id/heads"
         android:layout_width="0px"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_height="match_parent"
         android:layout_weight="1"
-        android:foregroundGravity="center"
         android:gravity="center_vertical"
         android:minHeight="?attr/listPreferredItemHeightSmall"
         android:textAppearance="?android:attr/textAppearanceListItemSmall"
