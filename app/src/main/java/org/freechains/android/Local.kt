@@ -10,7 +10,7 @@ import java.io.File
 import kotlin.concurrent.thread
 
 fun String.block2id () : String {
-    return this.take(5) + "..." + this.takeLast(3)
+    return this //this.take(5) + "..." + this.takeLast(3)
 }
 
 fun String.chain2id () : String {
@@ -22,7 +22,7 @@ fun String.chain2id () : String {
 }
 
 @Serializable
-data class Host (
+data class Peer (
     val name   : String,
     var ping   : String = "?",
     var chains : List<String> = emptyList()
@@ -37,13 +37,13 @@ data class Chain (
 
 @Serializable
 data class Local (
-    var hosts  : List<Host>,
+    var peers  : List<Peer>,
     var chains : List<Chain>
 )
 
 var LOCAL: Local? = null
 
-fun Local_reset () {
+fun Local_delete () {
     File(fsRoot!! + "/" + "local.json").delete()
 }
 
@@ -66,24 +66,24 @@ fun Local.save () {
 }
 
 @Synchronized
-fun Local.hostsAdd (name: String, f: ()->Unit) {
-    this.hosts += Host(name)
+fun Local.peersAdd (name: String, f: ()->Unit) {
+    this.peers += Peer(name)
     this.save()
     f()
-    this.hostsReload(f)
+    this.reloadPeers(f)
 }
 
 @Synchronized
-fun Local.hostsRem (host: String, f: ()->Unit) {
-    this.hosts = this.hosts.filter { it.name != host }
+fun Local.peersRem (host: String, f: ()->Unit) {
+    this.peers = this.peers.filter { it.name != host }
     this.save()
     f()
 }
 
 @Synchronized
-fun Local.hostsReload (f: ()->Unit) {
-    for (i in 0 until this.hosts.size) {
-        val host = this.hosts[i].name + ":8330"
+fun Local.reloadPeers (f: ()->Unit) {
+    for (i in 0 until this.peers.size) {
+        val host = this.peers[i].name + ":8330"
         thread {
             synchronized (this) {
                 val ms = main_(arrayOf("peer", "ping", host)).let {
@@ -93,8 +93,8 @@ fun Local.hostsReload (f: ()->Unit) {
                 val chains = main_(arrayOf("peer", "chains", host)).let {
                     if (it.isEmpty()) emptyList() else it.split(' ')
                 }
-                this.hosts[i].ping = ms
-                this.hosts[i].chains = chains
+                this.peers[i].ping = ms
+                this.peers[i].chains = chains
                 this.save()
                 f()
             }
@@ -103,7 +103,7 @@ fun Local.hostsReload (f: ()->Unit) {
 }
 
 @Synchronized
-fun Local.chainsReload (f: ()->Unit) {
+fun Local.reloadChains (f: ()->Unit) {
     thread {
         val names = main_(arrayOf("chains","list")).let {
             if (it.isEmpty()) {
