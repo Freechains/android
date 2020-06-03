@@ -10,7 +10,7 @@ import java.io.File
 import kotlin.concurrent.thread
 
 fun String.block2id () : String {
-    return this //this.take(5) + "..." + this.takeLast(3)
+    return this.take(5) + "..." + this.takeLast(3)
 }
 
 fun String.chain2id () : String {
@@ -115,7 +115,9 @@ fun Local.reloadChains (f: ()->Unit) {
         val chains = names.map {
             val heads  = main_(arrayOf("chain","heads",it,"all")).split(' ')
             val gen    = main_(arrayOf("chain","genesis",it))
-            val blocks = main_(arrayOf("chain","traverse",it,"all",gen)).split(' ')
+            val blocks = main_(arrayOf("chain","traverse",it,"all",gen)).let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
+            }
             Chain(it, heads, blocks.reversed().plus(gen))
         }
         synchronized (this) {
