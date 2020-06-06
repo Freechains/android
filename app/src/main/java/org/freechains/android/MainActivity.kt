@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity ()
     override fun onCreate (savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.act_main)
+
         findNavController(R.id.nav_host_fragment).let {
             this.setupActionBarWithNavController (
                 it,
@@ -63,13 +64,7 @@ class MainActivity : AppCompatActivity ()
         findViewById<ProgressBar>(R.id.progress).max = 0 // 0=ready
 
         fsRoot = applicationContext.filesDir.toString()
-        //println(fsRoot)
-        //Local_delete()
-
-        if (!Local_exists()) {
-            File(fsRoot!!, "/").deleteRecursively()
-            main_(arrayOf("host","create","/data/"))
-        }
+        //File(fsRoot!!, "/").deleteRecursively() ; error("OK")
         Local_load()
 
         this.setWaiting(true)
@@ -162,7 +157,7 @@ class MainActivity : AppCompatActivity ()
             .setMessage("Delete all data?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                Local_delete()
+                File(fsRoot!!, "/").deleteRecursively()
                 this.finishAffinity()
                 this.setWaiting(true)
                 Toast.makeText(
@@ -233,7 +228,7 @@ class MainActivity : AppCompatActivity ()
 
     fun chain_get (chain: String, mode: String, block: String) {
         thread {
-            val pay = main_(arrayOf("chain","get",chain,mode,block))
+            val pay = main_(arrayOf("chain", chain, "get", mode, block)).second!!
             this.runOnUiThread {
                 if (this.isActive) {
                     AlertDialog.Builder(this)
@@ -352,11 +347,11 @@ class MainActivity : AppCompatActivity ()
                             }
                         }
                     }
-                    main_(arrayOf("peer","send",h.name,chain.name)).let {
-                        f("->", it)
+                    main_(arrayOf("peer",h.name,"send",chain.name)).let {
+                        f("->", it.second!!)
                     }
-                    main_(arrayOf("peer","recv",h.name,chain.name)).let {
-                        f("<-", it)
+                    main_(arrayOf("peer",h.name,"recv",chain.name)).let {
+                        f("<-", it.second!!)
                     }
                     this.runOnUiThread {
                         if (progress.progress == progress.max) {

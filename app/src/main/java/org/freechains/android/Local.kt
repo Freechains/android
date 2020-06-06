@@ -16,8 +16,9 @@ fun String.block2id () : String {
 }
 
 fun String.chain2id () : String {
-    if (this.length==65 && this.all{ it=='/' || it.isDigit() || it.isUpperCase() }) {
-        return this.take(4) + "..." + this.takeLast(3)
+    if (this.startsWith('@')) {
+        val n = if (this.startsWith("@!")) 5 else 4
+        return this.take(n) + "..." + this.takeLast(3)
     } else {
         return this
     }
@@ -45,14 +46,6 @@ data class Local (
 
 var LOCAL: Local? = null
 
-fun Local_delete () {
-    File(fsRoot!! + "/" + "local.json").delete()
-}
-
-fun Local_exists () : Boolean {
-    return File(fsRoot!! + "/" + "local.json").exists()
-}
-
 fun Local_load () {
     val file = File(fsRoot!! + "/" + "local.json")
     if (!file.exists()) {
@@ -68,6 +61,7 @@ fun Local_load () {
 fun Local.save () {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
+    println("will create ${fsRoot!! + "/" + "local.json"}")
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
@@ -103,12 +97,12 @@ fun Local.bg_reloadPeers () : Wait {
     for (i in 0 until this.peers.size) {
         val host = this.peers[i].name + ":8330"
         val t = thread {
-            val ms = main_(arrayOf("peer", "ping", host)).let {
-                if (it.isEmpty()) "down" else it+"ms"
+            val ms = main_(arrayOf("peer", host, "ping")).let {
+                if (!it.first) "down" else it.second!!+"ms"
             }
             //println(">>> $i // $ms // ${this.hosts[i]}")
-            val chains = main_(arrayOf("peer", "chains", host)).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
+            val chains = main_(arrayOf("peer", host, "chains")).let {
+                if (!it.first) emptyList() else it.second!!.split(' ')
             }
             synchronized (this) {
                 this.peers[i].ping = ms
@@ -132,17 +126,13 @@ fun Local.bg_reloadPeers () : Wait {
 fun Local.bg_reloadChains () : Wait {
     val t = thread {
         val names = main_(arrayOf("chains","list")).let {
-            if (it.isEmpty()) {
-                emptyList()
-            } else {
-                it.split(' ')
-            }
+            if (!it.first) emptyList() else it.second!!.split(' ')
         }
         val chains = names.map {
-            val heads  = main_(arrayOf("chain","heads",it,"all")).split(' ')
-            val gen    = main_(arrayOf("chain","genesis",it))
-            val blocks = main_(arrayOf("chain","traverse",it,"all",gen)).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
+            val heads  = main_(arrayOf("chain",it,"heads","all")).second!!.split(' ')
+            val gen    = main_(arrayOf("chain",it,"genesis")).second!!
+            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).let {
+                if (!it.first) emptyList() else it.second!!.split(' ')
             }
             Chain(it, heads, blocks.reversed().plus(gen))
         }

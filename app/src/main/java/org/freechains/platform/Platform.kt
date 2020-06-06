@@ -12,7 +12,7 @@ var fsRoot: String? = null
 val lazySodium: LazySodiumAndroid = LazySodiumAndroid(SodiumAndroid())
 
 @Throws(IOException::class)
-fun DataInputStream.readAllBytesX(): ByteArray? {
+fun DataInputStream.readAllBytesX(): ByteArray {
     return this.readNBytesX(2147483647)
 }
 
