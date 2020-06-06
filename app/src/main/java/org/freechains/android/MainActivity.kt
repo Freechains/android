@@ -29,7 +29,8 @@ import java.io.File
 import java.net.Socket
 import kotlin.concurrent.thread
 
-const val T5m_sync = 30*hour
+const val T5m_sync    = 30*hour
+const val LEN1000_pay = 1000
 
 class MainActivity : AppCompatActivity ()
 {
@@ -228,7 +229,7 @@ class MainActivity : AppCompatActivity ()
 
     fun chain_get (chain: String, mode: String, block: String) {
         thread {
-            val pay = main_(arrayOf("chain", chain, "get", mode, block)).second!!
+            val pay = main_(arrayOf("chain", chain, "get", mode, block)).second!!.take(LEN1000_pay)
             this.runOnUiThread {
                 if (this.isActive) {
                     AlertDialog.Builder(this)
