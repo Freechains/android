@@ -22,4 +22,11 @@
         android:name="org.freechains.android.PeersFragment"
         android:label="Peers"
         tools:layout="@layout/frag_peers" />
+
+    <fragment
+        android:id="@+id/nav_identity"
+        android:name="org.freechains.android.IdsFragment"
+        android:label="Identity"
+        tools:layout="@layout/frag_ids_id" />
+
 </navigation>

@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import org.freechains.common.HKey
 import org.freechains.common.main_
 import org.freechains.platform.fsRoot
 import java.io.File
@@ -13,6 +14,10 @@ typealias Wait = (() -> Unit)
 
 fun String.block2id () : String {
     return this.take(5) + "..." + this.takeLast(3)
+}
+
+fun String.pub2id () : String {
+    return this.take(3) + "..." + this.takeLast(3)
 }
 
 fun String.chain2id () : String {
@@ -39,9 +44,17 @@ data class Chain (
 )
 
 @Serializable
+data class Id (
+    var nick : String,
+    //var desc : String,
+    var pub  : HKey
+)
+
+@Serializable
 data class Local (
     var peers  : List<Peer>,
-    var chains : List<Chain>
+    var chains : List<Chain>,
+    var ids    : List<Id>
 )
 
 var LOCAL: Local? = null
@@ -49,7 +62,7 @@ var LOCAL: Local? = null
 fun Local_load () {
     val file = File(fsRoot!! + "/" + "local.json")
     if (!file.exists()) {
-        LOCAL = Local(emptyList(), emptyList())
+        LOCAL = Local(emptyList(), emptyList(), emptyList())
     } else {
         @UseExperimental(UnstableDefault::class)
         val json = Json(JsonConfiguration(prettyPrint=true))
@@ -66,6 +79,45 @@ fun Local.save () {
 }
 
 @Synchronized
+fun Local.bg_reloadAll (): Wait {
+    val w1 = this.bg_reloadChains()
+    val w2 = this.bg_reloadPeers()
+    return { w1() ; w2() }
+}
+
+////////////////////////////////////////
+
+// When to call:
+// x add chain -> call sync
+// x rem chain
+// x sync
+// x listen
+
+@Synchronized
+fun Local.bg_reloadChains () : Wait {
+    val t = thread {
+        val names = main_(arrayOf("chains","list")).let {
+            if (!it.first) emptyList() else it.second!!.split(' ')
+        }
+        val chains = names.map {
+            val heads  = main_(arrayOf("chain",it,"heads","all")).second!!.split(' ')
+            val gen    = main_(arrayOf("chain",it,"genesis")).second!!
+            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).let {
+                if (!it.first) emptyList() else it.second!!.split(' ')
+            }
+            Chain(it, heads, blocks.reversed().plus(gen))
+        }
+        synchronized (this) {
+            this.chains = chains
+            this.save()
+        }
+    }
+    return { t.join() }
+}
+
+////////////////////////////////////////
+
+@Synchronized
 fun Local.bg_peersAdd (name: String) : Wait {
     this.peers += Peer(name)
     this.save()
@@ -76,13 +128,6 @@ fun Local.bg_peersAdd (name: String) : Wait {
 fun Local.peersRem (host: String) {
     this.peers = this.peers.filter { it.name != host }
     this.save()
-}
-
-@Synchronized
-fun Local.bg_reloadAll (): Wait {
-    val w1 = this.bg_reloadChains()
-    val w2 = this.bg_reloadPeers()
-    return { w1() ; w2() }
 }
 
 // When to call:
@@ -116,30 +161,29 @@ fun Local.bg_reloadPeers () : Wait {
     return f
 }
 
-// When to call:
-// x add chain -> call sync
-// x rem chain
-// x sync
-// x listen
+////////////////////////////////////////
 
 @Synchronized
-fun Local.bg_reloadChains () : Wait {
+fun Local.idsSize () : Int {
+    return this.ids.size
+}
+
+@Synchronized
+fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {
     val t = thread {
-        val names = main_(arrayOf("chains","list")).let {
-            if (!it.first) emptyList() else it.second!!.split(' ')
-        }
-        val chains = names.map {
-            val heads  = main_(arrayOf("chain",it,"heads","all")).second!!.split(' ')
-            val gen    = main_(arrayOf("chain",it,"genesis")).second!!
-            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).let {
-                if (!it.first) emptyList() else it.second!!.split(' ')
-            }
-            Chain(it, heads, blocks.reversed().plus(gen))
-        }
+        val pub = main_(arrayOf("crypto", "create", "pubpvt", passphrase)).second!!.split(' ')[0]
         synchronized (this) {
-            this.chains = chains
-            this.save()
+            if (this.ids.none { it.nick==nick || it.pub==pub }) {
+                this.ids += Id(nick, pub)
+                this.save()
+            }
         }
     }
     return { t.join() }
+}
+
+@Synchronized
+fun Local.idsRem (nick: String) {
+    this.ids = this.ids.filter { it.nick != nick }
+    this.save()
 }

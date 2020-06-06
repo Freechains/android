@@ -15,4 +15,9 @@
         android:icon="@drawable/ic_devices_black_96dp"
         android:title="Peers" />
 
+    <item
+        android:id="@+id/nav_identity"
+        android:icon="@drawable/ic_person_black_96dp"
+        android:title="Identity" />
+
 </menu>

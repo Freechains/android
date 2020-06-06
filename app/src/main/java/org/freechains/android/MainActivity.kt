@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity ()
         findNavController(R.id.nav_host_fragment).let {
             this.setupActionBarWithNavController (
                 it,
-                AppBarConfiguration(setOf(R.id.nav_home, R.id.nav_chains, R.id.nav_peers))
+                AppBarConfiguration(setOf(R.id.nav_home, R.id.nav_chains, R.id.nav_peers, R.id.nav_identity))
             )
             findViewById<BottomNavigationView>(R.id.nav_view).setupWithNavController(it)
         }
@@ -225,8 +225,6 @@ class MainActivity : AppCompatActivity ()
             .setNegativeButton(android.R.string.no, null).show()
     }
 
-    ////////////////////////////////////////
-
     fun chain_get (chain: String, mode: String, block: String) {
         thread {
             val pay = main_(arrayOf("chain", chain, "get", mode, block)).second!!.take(LEN1000_pay)
@@ -383,4 +381,65 @@ class MainActivity : AppCompatActivity ()
             }
         }
     }
+
+
+    ////////////////////////////////////////
+
+    fun ids_add_ask (cb: ()->Unit) {
+        val view = View.inflate(this, R.layout.frag_ids_add, null)
+
+        AlertDialog.Builder(this)
+            .setTitle("New identity:")
+            .setView(view)
+            .setNegativeButton ("Cancel", null)
+            .setPositiveButton("OK") { _,_ ->
+                val nick  = view.findViewById<EditText>(R.id.edit_nick).text.toString()
+                val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
+                val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
+                if (pass1.length>=20 && pass1==pass2) {
+                    val size = LOCAL!!.ids.size
+                    thread {
+                        LOCAL!!.bg_idsAdd(nick, pass1)()
+                        this.runOnUiThread {
+                            val ret = if (size < LOCAL!!.ids.size) {
+                                this.notify("update views w/ list of ids")
+                                this.bg_chains_join("@" + LOCAL!!.ids.first { it.nick == nick }.pub)
+                                "Added $nick."
+                            } else {
+                                "Identity already exists."
+                            }
+                            Toast.makeText(
+                                applicationContext,
+                                ret,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(
+                        applicationContext,
+                        "Invalid password.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .show()
+    }
+
+    fun ids_remove_ask (nick: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Remove identity $nick?")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton(android.R.string.yes, { _, _ ->
+                LOCAL!!.idsRem(nick)
+                this.notify("update views w/ list of ids")
+                Toast.makeText(
+                    applicationContext,
+                    "Removed identity $nick.", Toast.LENGTH_LONG
+                ).show()
+            })
+            .setNegativeButton(android.R.string.no, null).show()
+    }
+
+
 }
