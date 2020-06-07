@@ -39,16 +39,16 @@ data class Peer (
 
 @Serializable
 data class Chain (
-    var name   : String,
+    val name   : String,
     var heads  : List<String>,
     var blocks : List<String>
 )
 
 @Serializable
 data class Id (
-    var nick : String,
+    val nick : String,
     //var desc : String,
-    var pub  : HKey
+    val pub  : HKey
 )
 
 @Serializable
