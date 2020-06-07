@@ -80,10 +80,17 @@ fun Local.save () {
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
-@Synchronized
 fun Local.write (f: (Local)->Unit) {
-    f(this)
-    this.save()
+    this.write_tst { f(this) ; true }
+}
+
+@Synchronized
+fun Local.write_tst (f: (Local)->Boolean): Boolean {
+    val ret = f(this)
+    if (ret) {
+        this.save()
+    }
+    return ret
 }
 
 @Synchronized
@@ -114,7 +121,7 @@ fun Local.bg_reloadChains () : Wait {
             Chain(it, heads, blocks.reversed().plus(gen))
         }
         this.write {
-            this.chains = chains
+            it.chains = chains
         }
     }
     return { t.join() }
@@ -127,12 +134,6 @@ fun Local.bg_peersAdd (name: String) : Wait {
     this.peers += Peer(name)
     this.save()
     return this.bg_reloadPeers()
-}
-
-@Synchronized
-fun Local.peersRem (host: String) {
-    this.peers = this.peers.filter { it.name != host }
-    this.save()
 }
 
 // When to call:
@@ -180,29 +181,4 @@ fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {
         }
     }
     return { t.join() }
-}
-
-@Synchronized
-fun Local.idsRem (nick: String) {
-    this.ids = this.ids.filter { it.nick != nick }
-    this.save()
-}
-
-////////////////////////////////////////
-
-@Synchronized
-fun Local.ctsAdd (nick: String, pub: HKey) : Boolean {
-    if (this.cts.none { it.nick==nick || it.pub==pub }) {
-        this.cts += Id(nick, pub)
-        this.save()
-        return true
-    } else {
-        return false
-    }
-}
-
-@Synchronized
-fun Local.ctsRem (nick: String) {
-    this.ids = this.ids.filter { it.nick != nick }
-    this.save()
 }

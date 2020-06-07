@@ -332,7 +332,10 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove peer $host?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.peersRem(host)
+                LOCAL!!.write {
+                    it.peers = it.peers.filter { it.name != host }
+                }
+
                 this.notify("update views w/ list of peers")
                 Toast.makeText(
                     applicationContext,
@@ -485,7 +488,9 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove identity $nick?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.idsRem(nick)
+                LOCAL!!.write {
+                    it.ids = it.ids.filter { it.nick != nick }
+                }
                 this.notify("update views w/ list of ids")
                 Toast.makeText(
                     applicationContext,
@@ -506,13 +511,23 @@ class MainActivity : AppCompatActivity ()
             .setPositiveButton("OK") { _,_ ->
                 val nick = view.findViewById<EditText>(R.id.edit_nick).text.toString()
                 val pub  = view.findViewById<EditText>(R.id.edit_pub) .text.toString()
-                val ret = if (LOCAL!!.ctsAdd(nick,pub)) {
-                    this.notify("update views w/ list of cts")
-                    this.bg_chains_join("@" + pub)
-                    "Added contact $nick."
-                } else {
-                    "Contact already exists."
+
+                val ok = LOCAL!!.write_tst {
+                    if (it.cts.none { it.nick==nick || it.pub==pub }) {
+                        it.cts += Id(nick, pub)
+                        true
+                    } else {
+                        false
+                    }
                 }
+                val ret =
+                    if (ok) {
+                        this.notify("update views w/ list of cts")
+                        this.bg_chains_join("@" + pub)
+                        "Added contact $nick."
+                    } else {
+                        "Contact already exists."
+                    }
                 Toast.makeText(
                     applicationContext,
                     ret,
@@ -527,7 +542,9 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove contact $nick?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.idsRem(nick)
+                LOCAL!!.write {
+                    it.cts = it.cts.filter { it.nick != nick }
+                }
                 this.notify("update views w/ list of cts")
                 Toast.makeText(
                     applicationContext,
