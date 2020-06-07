@@ -7,13 +7,15 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Html
 import android.text.InputType
+import android.text.SpannableStringBuilder
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.URLSpan
 import android.view.View
 import android.view.WindowManager
-import android.widget.BaseExpandableListAdapter
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.navigation.findNavController
@@ -28,6 +30,30 @@ import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
 import kotlin.concurrent.thread
+
+fun makeLinkClickable (strBuilder: SpannableStringBuilder, span: URLSpan, cb: (String)->Unit) {
+    val start: Int = strBuilder.getSpanStart(span)
+    val end: Int = strBuilder.getSpanEnd(span)
+    val flags: Int = strBuilder.getSpanFlags(span)
+    val clickable: ClickableSpan = object : ClickableSpan() {
+        override fun onClick(view: View) {
+            cb(span.url)
+        }
+    }
+    strBuilder.setSpan(clickable, start, end, flags)
+    strBuilder.removeSpan(span)
+}
+
+fun TextView.setTextViewHTML (html: String, cb: (String)->Unit) {
+    val sequence: CharSequence = Html.fromHtml(html)
+    val strBuilder = SpannableStringBuilder(sequence)
+    val urls = strBuilder.getSpans(0, sequence.length, URLSpan::class.java)
+    for (span in urls) {
+        makeLinkClickable(strBuilder, span!!, cb)
+    }
+    this.text = strBuilder
+    this.movementMethod = LinkMovementMethod.getInstance()
+}
 
 const val T5m_sync    = 30*hour
 const val LEN1000_pay = 1000
@@ -258,10 +284,14 @@ class MainActivity : AppCompatActivity ()
     fun chain_get (chain: String, mode: String, block: String) {
         thread {
             val pay = main__(arrayOf("chain", chain, "get", mode, block)).take(LEN1000_pay)
+            //val pay1 = pay0.replace("\\s+".toRegex(), " ")
             this.runOnUiThread {
                 if (this.isActive) {
+                    //val msg = TextView(this)
+                    //msg.setTextViewHTML("<a href='xxx'><u>more</u></a)>") { println(it) }
                     AlertDialog.Builder(this)
                         .setTitle("Block ${block.block2id()}:")
+                        //.setView(msg)
                         .setMessage(pay)
                         .show()
                 }
