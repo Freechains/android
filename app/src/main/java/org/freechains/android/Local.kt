@@ -80,8 +80,10 @@ fun Local.save () {
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
-fun Local.write (f: (Local)->Unit) {
-    this.write_tst { f(this) ; true }
+fun <T> Local.write (f: (Local)->T): T {
+    var ret: T? = null
+    this.write_tst { ret=f(this) ; true }
+    return ret!!
 }
 
 @Synchronized
@@ -129,13 +131,6 @@ fun Local.bg_reloadChains () : Wait {
 
 ////////////////////////////////////////
 
-@Synchronized
-fun Local.bg_peersAdd (name: String) : Wait {
-    this.peers += Peer(name)
-    this.save()
-    return this.bg_reloadPeers()
-}
-
 // When to call:
 // x restart / periodically (update ping)
 // - enter "Peers" fragment (update ping)
@@ -155,30 +150,13 @@ fun Local.bg_reloadPeers () : Wait {
             val chains = main__(arrayOf("peer", host, "chains")).let {
                 if (it.isEmpty()) emptyList() else it.split(' ')
             }
-            synchronized (this) {
-                this.peers[i].ping = ms
-                this.peers[i].chains = chains
-                this.save()
+            this.write {
+                it.peers[i].ping = ms
+                it.peers[i].chains = chains
             }
         }
         val f_ = f
         f = { t.join() ; f_() }
     }
     return f
-}
-
-////////////////////////////////////////
-
-@Synchronized
-fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {
-    val t = thread {
-        val pub = main__(arrayOf("crypto", "create", "pubpvt", passphrase)).split(' ')[0]
-        synchronized (this) {
-            if (this.ids.none { it.nick==nick || it.pub==pub }) {
-                this.ids += Id(nick, pub)
-                this.save()
-            }
-        }
-    }
-    return { t.join() }
 }

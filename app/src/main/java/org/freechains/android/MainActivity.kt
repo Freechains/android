@@ -312,7 +312,9 @@ class MainActivity : AppCompatActivity ()
             .setPositiveButton("OK") { _,_ ->
                 val host = input.text.toString()
                 thread {
-                    LOCAL!!.bg_peersAdd(host)()
+                    LOCAL!!.write { it.peers += Peer(host) }
+                    LOCAL!!.bg_reloadPeers()
+
                     this.runOnUiThread {
                         this.notify("update views w/ list of peers")
                         this.peers_sync(true)
@@ -454,11 +456,19 @@ class MainActivity : AppCompatActivity ()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
                 if (pass1.length>= LEN20_pubpbt && pass1==pass2) {
-                    val size = LOCAL!!.read { it.ids.size }
                     thread {
-                        LOCAL!!.bg_idsAdd(nick, pass1)()
+                        val pub = main__(arrayOf("crypto", "create", "pubpvt", pass1)).split(' ')[0]
+                        var added = LOCAL!!.write {
+                            if (it.ids.none { it.nick==nick || it.pub==pub }) {
+                                it.ids += Id(nick, pub)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+
                         this.runOnUiThread {
-                            val ret = if (size < LOCAL!!.read{ it.ids.size }) {
+                            val ret = if (added) {
                                 this.notify("update views w/ list of ids")
                                 this.bg_chains_join("@" + LOCAL!!.read { it.ids.first { it.nick == nick }.pub })
                                 "Added identity $nick."
