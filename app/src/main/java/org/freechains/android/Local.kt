@@ -5,11 +5,8 @@ import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.HKey
-import org.freechains.common.main_
-import org.freechains.common.main__
 import org.freechains.platform.fsRoot
 import java.io.File
-import kotlin.concurrent.thread
 
 typealias Wait = (() -> Unit)
 
@@ -61,6 +58,8 @@ data class Local (
 
 var LOCAL: Local? = null
 
+val Local_cbs: MutableSet<()->Unit> = mutableSetOf()
+
 fun Local_load () {
     val file = File(fsRoot!! + "/" + "local.json")
     if (!file.exists()) {
@@ -80,6 +79,11 @@ fun Local.save () {
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
+@Synchronized
+fun <T> Local.read (f: (Local)->T): T {
+    return f(this)
+}
+
 fun <T> Local.write (f: (Local)->T): T {
     var ret: T? = null
     this.write_tst { ret=f(this) ; true }
@@ -91,72 +95,7 @@ fun Local.write_tst (f: (Local)->Boolean): Boolean {
     val ret = f(this)
     if (ret) {
         this.save()
+        Local_cbs.forEach { it() }
     }
     return ret
-}
-
-@Synchronized
-fun <T> Local.read (f: (Local)->T): T {
-    return f(this)
-}
-
-////////////////////////////////////////
-
-// When to call:
-// x add chain -> call sync
-// x rem chain
-// x sync
-// x listen
-
-@Synchronized
-fun Local.bg_reloadChains () : Wait {
-    val t = thread {
-        val names = main__(arrayOf("chains","list")).let {
-            if (it.isEmpty()) emptyList() else it.split(' ')
-        }
-        val chains = names.map {
-            val heads  = main__(arrayOf("chain",it,"heads","all")).split(' ')
-            val gen    = main__(arrayOf("chain",it,"genesis"))
-            val blocks = main__(arrayOf("chain",it,"traverse","all",gen)).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
-            }
-            Chain(it, heads, blocks.reversed().plus(gen))
-        }
-        this.write {
-            it.chains = chains
-        }
-    }
-    return { t.join() }
-}
-
-////////////////////////////////////////
-
-// When to call:
-// x restart / periodically (update ping)
-// - enter "Peers" fragment (update ping)
-// x add Peer -> call sync
-// x rem Peer
-
-@Synchronized
-fun Local.bg_reloadPeers () : Wait {
-    var f : Wait = {}
-    for (i in 0 until this.peers.size) {
-        val host = this.peers[i].name + ":8330"
-        val t = thread {
-            val ms = main_(arrayOf("peer", host, "ping")).let {
-                if (!it.first) "down" else it.second!!+"ms"
-            }
-            //println(">>> $i // $ms // ${this.hosts[i]}")
-            val chains = main__(arrayOf("peer", host, "chains")).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
-            }
-            this.write {
-                it.peers[i].ping = ms
-                it.peers[i].chains = chains
-            }
-        }
-        val f_ = f
-        f = { t.join() ; f_() }
-    }
-    return f
 }

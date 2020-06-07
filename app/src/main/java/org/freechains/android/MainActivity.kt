@@ -65,12 +65,6 @@ class MainActivity : AppCompatActivity ()
     var isActive = true
     val adapters: MutableSet<BaseExpandableListAdapter> = mutableSetOf()
 
-    fun notify (tp: String) {
-        this.adapters.forEach {
-            it.notifyDataSetChanged()
-        }
-    }
-
     override fun onPause()  { super.onPause()  ; this.isActive=false }
     override fun onResume() { super.onResume() ; this.isActive=true  }
 
@@ -96,6 +90,13 @@ class MainActivity : AppCompatActivity ()
         fsRoot = applicationContext.filesDir.toString()
         //File(fsRoot!!, "/").deleteRecursively() ; error("OK")
         Local_load()
+        Local_cbs.add {
+            this.runOnUiThread {
+                this.adapters.forEach {
+                    it.notifyDataSetChanged()
+                }
+            }
+        }
 
         this.setWaiting(true)
 
@@ -113,9 +114,8 @@ class MainActivity : AppCompatActivity ()
         // background sync/reload
         thread {
             while (true) {
-                LOCAL!!.bg_reloadPeers()()
+                this.bg_reloadPeers()()
                 this.runOnUiThread {
-                    this.notify("update views w/ peer pings")
                     this.peers_sync(false)
                 }
                 Thread.sleep(T5m_sync)
@@ -130,13 +130,10 @@ class MainActivity : AppCompatActivity ()
             writer.writeLineX("$PRE chains listen")
             while (true) {
                 val v = reader.readLineX()
-                val (n) = Regex("(\\d+) .*").find(v)!!.destructured
+                val (n,chain) = Regex("(\\d+) (.*)").find(v)!!.destructured
                 if (n.toInt() > 0) {
                     this.showNotification("New blocks:", v)
-                    LOCAL!!.bg_reloadChains()()
-                    this.runOnUiThread {
-                        this.notify("update views w/ contents of chains")
-                    }
+                    this.bg_reloadChain(chain)
                 }
             }
         }
@@ -201,6 +198,35 @@ class MainActivity : AppCompatActivity ()
 
     ////////////////////////////////////////
 
+    fun bg_reloadChains () : Wait {
+        val t = thread {
+            val names = main__(arrayOf("chains", "list")).let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
+            }
+            names.map { this.bg_reloadChain(it) }.map { it() }
+        }
+        return { t.join() }
+    }
+
+    fun bg_reloadChain (chain: String) : Wait {
+        val t = thread {
+            val heads  = main__(arrayOf("chain", chain, "heads", "all")).split(' ')
+            val gen    = main__(arrayOf("chain", chain, "genesis"))
+            val blocks = main__(arrayOf("chain", chain, "traverse", "all", gen)).let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
+            }
+            LOCAL!!.write {
+                it.chains
+                    .first { it.name==chain }
+                    .let {
+                        it.heads  = heads
+                        it.blocks = blocks.reversed().plus(gen)
+                    }
+            }
+        }
+        return { t.join() }
+    }
+
     fun chains_join_ask () {
         val view = View.inflate(this, R.layout.frag_chains_join, null)
         AlertDialog.Builder(this)
@@ -238,9 +264,8 @@ class MainActivity : AppCompatActivity ()
                 }
             main_(cmd).let { (ok, err) ->
                 if (ok) {
-                    LOCAL!!.bg_reloadChains()()
+                    this.bg_reloadChain(chain)()
                     this.runOnUiThread {
-                        this.notify("update view w/ list of chains")
                         this.peers_sync(true)
                         Toast.makeText(
                             this.applicationContext,
@@ -268,10 +293,7 @@ class MainActivity : AppCompatActivity ()
             .setPositiveButton(android.R.string.yes, { _, _ ->
                 thread {
                     main_(arrayOf("chains", "leave", chain))
-                    LOCAL!!.bg_reloadChains()()
-                    this.runOnUiThread {
-                        this.notify("update views w/ list of chains")
-                    }
+                    this.bg_reloadChains()()
                 }
                 Toast.makeText(
                     this.applicationContext,
@@ -301,6 +323,33 @@ class MainActivity : AppCompatActivity ()
 
     ////////////////////////////////////////
 
+    fun bg_reloadPeers () : Wait {
+        val ws = LOCAL!!
+            .read { it.peers.map { it.name } }
+            .map { this.bg_reloadPeer(it) }
+        return { ws.map { it() } }
+    }
+
+    fun bg_reloadPeer (host: String) : Wait {
+        val t = thread {
+            val ms = main_(arrayOf("peer", host, "ping")).let {
+                if (!it.first) "down" else it.second!!+"ms"
+            }
+            val chains = main__(arrayOf("peer", host, "chains")).let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
+            }
+            LOCAL!!.write {
+                it.peers
+                    .first { it.name==host }
+                    .let {
+                        it.ping   = ms
+                        it.chains = chains
+                    }
+            }
+        }
+        return { t.join() }
+    }
+
     fun peers_add_ask (cb: ()->Unit) {
         val input = EditText(this)
         input.inputType = InputType.TYPE_CLASS_TEXT
@@ -311,18 +360,29 @@ class MainActivity : AppCompatActivity ()
             .setNegativeButton ("Cancel", null)
             .setPositiveButton("OK") { _,_ ->
                 val host = input.text.toString()
-                thread {
-                    LOCAL!!.write { it.peers += Peer(host) }
-                    LOCAL!!.bg_reloadPeers()
-
-                    this.runOnUiThread {
-                        this.notify("update views w/ list of peers")
-                        this.peers_sync(true)
+                val ok = LOCAL!!.write_tst {
+                    if (it.peers.none { it.name==host }) {
+                        it.peers += Peer(host)
+                        true
+                    } else {
+                        false
                     }
                 }
+                val msg =
+                    if (ok) {
+                        thread {
+                            this.bg_reloadPeer(host)()
+                            this.runOnUiThread {
+                                this.peers_sync(true)
+                            }
+                        }
+                        "Added peer $host."
+                    } else {
+                        "Peer $host already exists."
+                    }
                 Toast.makeText(
                     applicationContext,
-                    "Added peer $host.",
+                    msg,
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -337,8 +397,6 @@ class MainActivity : AppCompatActivity ()
                 LOCAL!!.write {
                     it.peers = it.peers.filter { it.name != host }
                 }
-
-                this.notify("update views w/ list of peers")
                 Toast.makeText(
                     applicationContext,
                     "Removed peer $host.", Toast.LENGTH_LONG
@@ -421,12 +479,7 @@ class MainActivity : AppCompatActivity ()
                                 .joinToString("\n")
                             if (news.isNotEmpty()) {
                                 this.showNotification("New blocks:", news)
-                                thread {
-                                    LOCAL!!.bg_reloadChains()()
-                                    this.runOnUiThread {
-                                        this.notify("update views w/ contents of chains")
-                                    }
-                                }
+                                this.bg_reloadChains()
                             }
                             if (showProgress) {
                                 progress.visibility = View.INVISIBLE
@@ -455,10 +508,10 @@ class MainActivity : AppCompatActivity ()
                 val nick  = view.findViewById<EditText>(R.id.edit_nick).text.toString()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
-                if (pass1.length>= LEN20_pubpbt && pass1==pass2) {
+                if (pass1.length>=LEN20_pubpbt && pass1==pass2) {
                     thread {
                         val pub = main__(arrayOf("crypto", "create", "pubpvt", pass1)).split(' ')[0]
-                        var added = LOCAL!!.write {
+                        var ok = LOCAL!!.write {
                             if (it.ids.none { it.nick==nick || it.pub==pub }) {
                                 it.ids += Id(nick, pub)
                                 true
@@ -466,10 +519,8 @@ class MainActivity : AppCompatActivity ()
                                 false
                             }
                         }
-
                         this.runOnUiThread {
-                            val ret = if (added) {
-                                this.notify("update views w/ list of ids")
+                            val ret = if (ok) {
                                 this.bg_chains_join("@" + LOCAL!!.read { it.ids.first { it.nick == nick }.pub })
                                 "Added identity $nick."
                             } else {
@@ -501,7 +552,6 @@ class MainActivity : AppCompatActivity ()
                 LOCAL!!.write {
                     it.ids = it.ids.filter { it.nick != nick }
                 }
-                this.notify("update views w/ list of ids")
                 Toast.makeText(
                     applicationContext,
                     "Removed identity $nick.", Toast.LENGTH_LONG
@@ -532,7 +582,6 @@ class MainActivity : AppCompatActivity ()
                 }
                 val ret =
                     if (ok) {
-                        this.notify("update views w/ list of cts")
                         this.bg_chains_join("@" + pub)
                         "Added contact $nick."
                     } else {
@@ -555,7 +604,6 @@ class MainActivity : AppCompatActivity ()
                 LOCAL!!.write {
                     it.cts = it.cts.filter { it.nick != nick }
                 }
-                this.notify("update views w/ list of cts")
                 Toast.makeText(
                     applicationContext,
                     "Removed contact $nick.", Toast.LENGTH_LONG
