@@ -102,8 +102,8 @@ fun Local.bg_reloadChains () : Wait {
         val chains = names.map {
             val heads  = main_(arrayOf("chain",it,"heads","all")).second!!.split(' ')
             val gen    = main_(arrayOf("chain",it,"genesis")).second!!
-            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).let {
-                if (!it.first) emptyList() else it.second!!.split(' ')
+            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).second!!.let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
             }
             Chain(it, heads, blocks.reversed().plus(gen))
         }
@@ -162,11 +162,6 @@ fun Local.bg_reloadPeers () : Wait {
 }
 
 ////////////////////////////////////////
-
-@Synchronized
-fun Local.idsSize () : Int {
-    return this.ids.size
-}
 
 @Synchronized
 fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {

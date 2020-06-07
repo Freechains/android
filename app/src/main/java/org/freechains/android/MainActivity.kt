@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity ()
         }
         findViewById<ProgressBar>(R.id.progress).max = 0 // 0=ready
 
+        //println(">>> VERSION = $VERSION")
         fsRoot = applicationContext.filesDir.toString()
         //File(fsRoot!!, "/").deleteRecursively() ; error("OK")
         Local_load()
@@ -188,13 +189,20 @@ class MainActivity : AppCompatActivity ()
 
     fun bg_chains_join (chain: String) : Wait {
         val t = thread {
-            main_(arrayOf("chains", "join", chain))
-            this.runOnUiThread {
+            val (ok,err) = main_(arrayOf("chains", "join", chain))
+            if (ok) {
                 LOCAL!!.bg_reloadChains()()
                 this.runOnUiThread {
                     this.notify("update view w/ list of chains")
+                    this.peers_sync(true)
                 }
-                this.peers_sync(true)
+            } else {
+                this.runOnUiThread {
+                    Toast.makeText(
+                        this.applicationContext,
+                        "Error joining chain $chain: " + err, Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
         Toast.makeText(
@@ -219,7 +227,7 @@ class MainActivity : AppCompatActivity ()
                 }
                 Toast.makeText(
                     this.applicationContext,
-                    "Left $chain.", Toast.LENGTH_LONG
+                    "Left chain $chain.", Toast.LENGTH_LONG
                 ).show()
             })
             .setNegativeButton(android.R.string.no, null).show()
@@ -290,9 +298,6 @@ class MainActivity : AppCompatActivity ()
         if (progress.max > 0) {
             return  // already running
         }
-        if (showProgress) {
-            progress.visibility = View.VISIBLE
-        }
         progress.max = hosts.map {
             it.chains.count {
                 chains.any { chain ->
@@ -302,6 +307,9 @@ class MainActivity : AppCompatActivity ()
         }.sum() * 2
         if (progress.max == 0) {
             return
+        }
+        if (showProgress) {
+            progress.visibility = View.VISIBLE
         }
 
         if (showProgress) {
@@ -327,7 +335,7 @@ class MainActivity : AppCompatActivity ()
                 // but not inside each chain
                 for (h in hs) {
                     fun f (dir: String, v: String) {
-                        //println(v)
+                        println(v)
                         val (v1,v2) = Regex("(\\d+) / (\\d+)").find(v)!!.destructured
                         min += v1.toInt()
                         max += v2.toInt()
