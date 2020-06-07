@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.HKey
 import org.freechains.common.main_
+import org.freechains.common.main__
 import org.freechains.platform.fsRoot
 import java.io.File
 import kotlin.concurrent.thread
@@ -96,13 +97,13 @@ fun Local.bg_reloadAll (): Wait {
 @Synchronized
 fun Local.bg_reloadChains () : Wait {
     val t = thread {
-        val names = main_(arrayOf("chains","list")).let {
-            if (!it.first) emptyList() else it.second!!.split(' ')
+        val names = main__(arrayOf("chains","list")).let {
+            if (it.isEmpty()) emptyList() else it.split(' ')
         }
         val chains = names.map {
-            val heads  = main_(arrayOf("chain",it,"heads","all")).second!!.split(' ')
-            val gen    = main_(arrayOf("chain",it,"genesis")).second!!
-            val blocks = main_(arrayOf("chain",it,"traverse","all",gen)).second!!.let {
+            val heads  = main__(arrayOf("chain",it,"heads","all")).split(' ')
+            val gen    = main__(arrayOf("chain",it,"genesis"))
+            val blocks = main__(arrayOf("chain",it,"traverse","all",gen)).let {
                 if (it.isEmpty()) emptyList() else it.split(' ')
             }
             Chain(it, heads, blocks.reversed().plus(gen))
@@ -146,8 +147,8 @@ fun Local.bg_reloadPeers () : Wait {
                 if (!it.first) "down" else it.second!!+"ms"
             }
             //println(">>> $i // $ms // ${this.hosts[i]}")
-            val chains = main_(arrayOf("peer", host, "chains")).let {
-                if (!it.first) emptyList() else it.second!!.split(' ')
+            val chains = main__(arrayOf("peer", host, "chains")).let {
+                if (it.isEmpty()) emptyList() else it.split(' ')
             }
             synchronized (this) {
                 this.peers[i].ping = ms
@@ -166,7 +167,7 @@ fun Local.bg_reloadPeers () : Wait {
 @Synchronized
 fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {
     val t = thread {
-        val pub = main_(arrayOf("crypto", "create", "pubpvt", passphrase)).second!!.split(' ')[0]
+        val pub = main__(arrayOf("crypto", "create", "pubpvt", passphrase)).split(' ')[0]
         synchronized (this) {
             if (this.ids.none { it.nick==nick || it.pub==pub }) {
                 this.ids += Id(nick, pub)

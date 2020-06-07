@@ -31,6 +31,8 @@ import kotlin.concurrent.thread
 
 const val T5m_sync    = 30*hour
 const val LEN1000_pay = 1000
+const val LEN10_shared = 10
+const val LEN20_pubpbt = 20
 
 class MainActivity : AppCompatActivity ()
 {
@@ -174,42 +176,62 @@ class MainActivity : AppCompatActivity ()
     ////////////////////////////////////////
 
     fun chains_join_ask () {
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_CLASS_TEXT
-
+        val view = View.inflate(this, R.layout.frag_chains_join, null)
         AlertDialog.Builder(this)
             .setTitle("Join chain:")
-            .setView(input)
+            .setView(view)
             .setNegativeButton ("Cancel", null)
             .setPositiveButton("OK") { _,_ ->
-                this.bg_chains_join(input.text.toString())
+                val name  = view.findViewById<EditText>(R.id.edit_name) .text.toString()
+                val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
+                val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
+                if (!name.startsWith('$') || (pass1.length>=LEN10_shared && pass1==pass2)) {
+                    val size = LOCAL!!.ids.size
+                    thread {
+                        this.bg_chains_join(name,pass1)
+                    }
+                } else {
+                    Toast.makeText(
+                        applicationContext,
+                        "Invalid password.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
             .show()
     }
 
-    fun bg_chains_join (chain: String) : Wait {
+    fun bg_chains_join (chain: String, pass: String = "") : Wait {
         val t = thread {
-            val (ok,err) = main_(arrayOf("chains", "join", chain))
-            if (ok) {
-                LOCAL!!.bg_reloadChains()()
-                this.runOnUiThread {
-                    this.notify("update view w/ list of chains")
-                    this.peers_sync(true)
+            val cmd =
+                if (chain.startsWith('$')) {
+                    val key = main__(arrayOf("crypto", "create", "shared", pass))
+                    arrayOf("chains", "join", chain, key)
+                } else {
+                    arrayOf("chains", "join", chain)
                 }
-            } else {
-                this.runOnUiThread {
-                    Toast.makeText(
-                        this.applicationContext,
-                        "Error joining chain $chain: " + err, Toast.LENGTH_LONG
-                    ).show()
+            main_(cmd).let { (ok, err) ->
+                if (ok) {
+                    LOCAL!!.bg_reloadChains()()
+                    this.runOnUiThread {
+                        this.notify("update view w/ list of chains")
+                        this.peers_sync(true)
+                        Toast.makeText(
+                            this.applicationContext,
+                            "Added chain $chain.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    this.runOnUiThread {
+                        Toast.makeText(
+                            this.applicationContext,
+                            "Error joining chain $chain: " + err, Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             }
         }
-        Toast.makeText(
-            this.applicationContext,
-            "Added $chain.",
-            Toast.LENGTH_SHORT
-        ).show()
         return { t.join() }
     }
 
@@ -235,7 +257,7 @@ class MainActivity : AppCompatActivity ()
 
     fun chain_get (chain: String, mode: String, block: String) {
         thread {
-            val pay = main_(arrayOf("chain", chain, "get", mode, block)).second!!.take(LEN1000_pay)
+            val pay = main__(arrayOf("chain", chain, "get", mode, block)).take(LEN1000_pay)
             this.runOnUiThread {
                 if (this.isActive) {
                     AlertDialog.Builder(this)
@@ -354,12 +376,8 @@ class MainActivity : AppCompatActivity ()
                             }
                         }
                     }
-                    main_(arrayOf("peer",h.name,"send",chain.name)).let {
-                        f("->", it.second!!)
-                    }
-                    main_(arrayOf("peer",h.name,"recv",chain.name)).let {
-                        f("<-", it.second!!)
-                    }
+                    f("->", main__(arrayOf("peer",h.name,"send",chain.name)))
+                    f("<-", main__(arrayOf("peer",h.name,"recv",chain.name)))
                     this.runOnUiThread {
                         if (progress.progress == progress.max) {
                             val news = counts.toList()
@@ -395,7 +413,6 @@ class MainActivity : AppCompatActivity ()
 
     fun ids_add_ask (cb: ()->Unit) {
         val view = View.inflate(this, R.layout.frag_ids_add, null)
-
         AlertDialog.Builder(this)
             .setTitle("New identity:")
             .setView(view)
@@ -404,7 +421,7 @@ class MainActivity : AppCompatActivity ()
                 val nick  = view.findViewById<EditText>(R.id.edit_nick).text.toString()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
-                if (pass1.length>=20 && pass1==pass2) {
+                if (pass1.length>= LEN20_pubpbt && pass1==pass2) {
                     val size = LOCAL!!.ids.size
                     thread {
                         LOCAL!!.bg_idsAdd(nick, pass1)()
