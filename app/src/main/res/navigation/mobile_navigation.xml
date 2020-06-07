@@ -29,4 +29,10 @@
         android:label="Identity"
         tools:layout="@layout/frag_ids_id" />
 
+    <fragment
+        android:id="@+id/nav_contacts"
+        android:name="org.freechains.android.CtsFragment"
+        android:label="Contacts"
+        tools:layout="@layout/frag_ids_id" />
+
 </navigation>

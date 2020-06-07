@@ -212,7 +212,7 @@ class MainActivity : AppCompatActivity ()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
                 if (!name.startsWith('$') || (pass1.length>=LEN10_shared && pass1==pass2)) {
-                    val size = LOCAL!!.ids.size
+                    val size = LOCAL!!.read { it.ids.size }
                     thread {
                         this.bg_chains_join(name,pass1)
                     }
@@ -343,8 +343,8 @@ class MainActivity : AppCompatActivity ()
     }
 
     fun peers_sync (showProgress: Boolean) {
-        val hosts  = LOCAL!!.peers
-        val chains = LOCAL!!.chains
+        val hosts  = LOCAL!!.read { it.peers  }
+        val chains = LOCAL!!.read { it.chains }
 
         val progress = findViewById<ProgressBar>(R.id.progress)
         if (progress.max > 0) {
@@ -438,7 +438,6 @@ class MainActivity : AppCompatActivity ()
         }
     }
 
-
     ////////////////////////////////////////
 
     fun ids_add_ask (cb: ()->Unit) {
@@ -452,14 +451,14 @@ class MainActivity : AppCompatActivity ()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
                 if (pass1.length>= LEN20_pubpbt && pass1==pass2) {
-                    val size = LOCAL!!.ids.size
+                    val size = LOCAL!!.read { it.ids.size }
                     thread {
                         LOCAL!!.bg_idsAdd(nick, pass1)()
                         this.runOnUiThread {
-                            val ret = if (size < LOCAL!!.ids.size) {
+                            val ret = if (size < LOCAL!!.read{ it.ids.size }) {
                                 this.notify("update views w/ list of ids")
-                                this.bg_chains_join("@" + LOCAL!!.ids.first { it.nick == nick }.pub)
-                                "Added $nick."
+                                this.bg_chains_join("@" + LOCAL!!.read { it.ids.first { it.nick == nick }.pub })
+                                "Added identity $nick."
                             } else {
                                 "Identity already exists."
                             }
@@ -496,5 +495,45 @@ class MainActivity : AppCompatActivity ()
             .setNegativeButton(android.R.string.no, null).show()
     }
 
+    ////////////////////////////////////////
 
+    fun cts_add_ask (cb: ()->Unit) {
+        val view = View.inflate(this, R.layout.frag_cts_add, null)
+        AlertDialog.Builder(this)
+            .setTitle("New contact:")
+            .setView(view)
+            .setNegativeButton ("Cancel", null)
+            .setPositiveButton("OK") { _,_ ->
+                val nick = view.findViewById<EditText>(R.id.edit_nick).text.toString()
+                val pub  = view.findViewById<EditText>(R.id.edit_pub) .text.toString()
+                val ret = if (LOCAL!!.ctsAdd(nick,pub)) {
+                    this.notify("update views w/ list of cts")
+                    this.bg_chains_join("@" + pub)
+                    "Added contact $nick."
+                } else {
+                    "Contact already exists."
+                }
+                Toast.makeText(
+                    applicationContext,
+                    ret,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .show()
+    }
+
+    fun cts_remove_ask (nick: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Remove contact $nick?")
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton(android.R.string.yes, { _, _ ->
+                LOCAL!!.idsRem(nick)
+                this.notify("update views w/ list of cts")
+                Toast.makeText(
+                    applicationContext,
+                    "Removed contact $nick.", Toast.LENGTH_LONG
+                ).show()
+            })
+            .setNegativeButton(android.R.string.no, null).show()
+    }
 }

@@ -55,7 +55,8 @@ data class Id (
 data class Local (
     var peers  : List<Peer>,
     var chains : List<Chain>,
-    var ids    : List<Id>
+    var ids    : List<Id>,
+    var cts    : List<Id>
 )
 
 var LOCAL: Local? = null
@@ -63,7 +64,7 @@ var LOCAL: Local? = null
 fun Local_load () {
     val file = File(fsRoot!! + "/" + "local.json")
     if (!file.exists()) {
-        LOCAL = Local(emptyList(), emptyList(), emptyList())
+        LOCAL = Local(emptyList(), emptyList(), emptyList(), emptyList())
     } else {
         @UseExperimental(UnstableDefault::class)
         val json = Json(JsonConfiguration(prettyPrint=true))
@@ -75,15 +76,19 @@ fun Local_load () {
 fun Local.save () {
     @UseExperimental(UnstableDefault::class)
     val json = Json(JsonConfiguration(prettyPrint=true))
-    println("will create ${fsRoot!! + "/" + "local.json"}")
+    //println("will create ${fsRoot!! + "/" + "local.json"}")
     File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
 }
 
 @Synchronized
-fun Local.bg_reloadAll (): Wait {
-    val w1 = this.bg_reloadChains()
-    val w2 = this.bg_reloadPeers()
-    return { w1() ; w2() }
+fun Local.write (f: (Local)->Unit) {
+    f(this)
+    this.save()
+}
+
+@Synchronized
+fun <T> Local.read (f: (Local)->T): T {
+    return f(this)
 }
 
 ////////////////////////////////////////
@@ -108,9 +113,8 @@ fun Local.bg_reloadChains () : Wait {
             }
             Chain(it, heads, blocks.reversed().plus(gen))
         }
-        synchronized (this) {
+        this.write {
             this.chains = chains
-            this.save()
         }
     }
     return { t.join() }
@@ -180,6 +184,25 @@ fun Local.bg_idsAdd (nick: String, passphrase: String) : Wait {
 
 @Synchronized
 fun Local.idsRem (nick: String) {
+    this.ids = this.ids.filter { it.nick != nick }
+    this.save()
+}
+
+////////////////////////////////////////
+
+@Synchronized
+fun Local.ctsAdd (nick: String, pub: HKey) : Boolean {
+    if (this.cts.none { it.nick==nick || it.pub==pub }) {
+        this.cts += Id(nick, pub)
+        this.save()
+        return true
+    } else {
+        return false
+    }
+}
+
+@Synchronized
+fun Local.ctsRem (nick: String) {
     this.ids = this.ids.filter { it.nick != nick }
     this.save()
 }

@@ -52,7 +52,7 @@ class PeersFragment : Fragment ()
             return true
         }
         override fun getChild (i: Int, j: Int): Any? {
-            return LOCAL!!.peers[i].chains[j]
+            return LOCAL!!.read { it.peers[i].chains[j] }
         }
         override fun getChildId (i: Int, j: Int): Long {
             return i*10+j.toLong()
@@ -60,9 +60,9 @@ class PeersFragment : Fragment ()
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(outer.main, R.layout.frag_peers_chain,null)
-            val chain = LOCAL!!.peers[i].chains[j].toString()
+            val chain = LOCAL!!.read { it.peers[i].chains[j] }
             view.findViewById<TextView>(R.id.chain).text = chain.chain2id()
-            if (!LOCAL!!.chains.any { it.name == LOCAL!!.peers[i].chains[j] }) {
+            if (!LOCAL!!.read { it.chains.any { it.name == LOCAL!!.peers[i].chains[j] } }) {
                 view.findViewById<ImageButton>(R.id.add).let {
                     it.visibility = View.VISIBLE
                     it.setOnClickListener {
@@ -73,22 +73,22 @@ class PeersFragment : Fragment ()
             return view
         }
         override fun getChildrenCount (i: Int): Int {
-            return LOCAL!!.peers[i].chains.size
+            return LOCAL!!.read { it.peers[i].chains.size }
         }
         override fun getGroupCount(): Int {
-            return LOCAL!!.peers.size
+            return LOCAL!!.read { it.peers.size }
         }
         override fun getGroup (i: Int): Any {
-            return LOCAL!!.peers[i]
+            return LOCAL!!.read { it.peers[i] }
         }
         override fun getGroupId (i: Int): Long {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(outer.main, R.layout.frag_peers_host,null)
-            view.findViewById<TextView>(R.id.ping).text = LOCAL!!.peers[i].ping
-            view.findViewById<TextView>(R.id.host).text = LOCAL!!.peers[i].name
-            view.tag = LOCAL!!.peers[i].name
+            view.findViewById<TextView>(R.id.ping).text = LOCAL!!.read { it.peers[i].ping }
+            view.findViewById<TextView>(R.id.host).text = LOCAL!!.read { it.peers[i].name }
+            view.tag = LOCAL!!.read { it.peers[i].name }
             return view
         }
     }

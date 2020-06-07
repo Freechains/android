@@ -22,6 +22,9 @@ class HomeFragment : Fragment ()
             view.findViewById<ImageView>(R.id.but_identity).setOnClickListener { it ->
                 it.findNavController().navigate(R.id.nav_identity)
             }
+            view.findViewById<ImageView>(R.id.but_contacts).setOnClickListener { it ->
+                it.findNavController().navigate(R.id.nav_contacts)
+            }
             view.findViewById<ImageView>(R.id.but_sync).setOnClickListener {
                 (this.activity as MainActivity).peers_sync(true)
             }
