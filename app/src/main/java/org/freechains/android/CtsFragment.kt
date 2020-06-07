@@ -55,7 +55,7 @@ class CtsFragment : Fragment ()
             return true
         }
         override fun getChild (i: Int, j: Int): Any? {
-            return LOCAL!!.read { it.cts[i].pub }
+            return LOCAL.read { it.cts[i].pub }
         }
         override fun getChildId (i: Int, j: Int): Long {
             return i*10+j.toLong()
@@ -63,26 +63,26 @@ class CtsFragment : Fragment ()
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(outer.main, android.R.layout.simple_list_item_1,null)
-            view.findViewById<TextView>(android.R.id.text1).text = LOCAL!!.read { it.cts[i].pub }
+            view.findViewById<TextView>(android.R.id.text1).text = LOCAL.read { it.cts[i].pub }
             return view
         }
         override fun getChildrenCount (i: Int): Int {
             return 1
         }
         override fun getGroupCount(): Int {
-            return LOCAL!!.read { it.cts.size }
+            return LOCAL.read { it.cts.size }
         }
         override fun getGroup (i: Int): Any {
-            return LOCAL!!.read { it.cts[i] }
+            return LOCAL.read { it.cts[i] }
         }
         override fun getGroupId (i: Int): Long {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(outer.main, R.layout.frag_ids_id,null)
-            view.findViewById<TextView>(R.id.nick).text = LOCAL!!.read { it.cts[i].nick }
-            view.findViewById<TextView>(R.id.pub) .text = LOCAL!!.read { it.cts[i].pub.pub2id() }
-            view.tag = LOCAL!!.read { it.cts[i].nick }
+            view.findViewById<TextView>(R.id.nick).text = LOCAL.read { it.cts[i].nick }
+            view.findViewById<TextView>(R.id.pub) .text = LOCAL.read { it.cts[i].pub.pub2id() }
+            view.tag = LOCAL.read { it.cts[i].nick }
             return view
         }
     }

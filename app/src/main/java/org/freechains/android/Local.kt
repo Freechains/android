@@ -56,46 +56,47 @@ data class Local (
     var cts    : List<Id>
 )
 
-var LOCAL: Local? = null
+object LOCAL {
+    var data: Local? = null
+    val cbs: MutableSet<()->Unit> = mutableSetOf()
 
-val Local_cbs: MutableSet<()->Unit> = mutableSetOf()
+    fun load () {
+        val file = File(fsRoot!! + "/" + "local.json")
+        if (!file.exists()) {
+            this.data = Local(emptyList(), emptyList(), emptyList(), emptyList())
+        } else {
+            @UseExperimental(UnstableDefault::class)
+            val json = Json(JsonConfiguration(prettyPrint=true))
+            this.data = json.parse(Local.serializer(), file.readText())
+        }
+        this.save()
+    }
 
-fun Local_load () {
-    val file = File(fsRoot!! + "/" + "local.json")
-    if (!file.exists()) {
-        LOCAL = Local(emptyList(), emptyList(), emptyList(), emptyList())
-    } else {
+    private fun save () {
         @UseExperimental(UnstableDefault::class)
         val json = Json(JsonConfiguration(prettyPrint=true))
-        LOCAL = json.parse(Local.serializer(), file.readText())
+        //println("will create ${fsRoot!! + "/" + "local.json"}")
+        File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this.data!!))
     }
-    LOCAL!!.save()
-}
 
-fun Local.save () {
-    @UseExperimental(UnstableDefault::class)
-    val json = Json(JsonConfiguration(prettyPrint=true))
-    //println("will create ${fsRoot!! + "/" + "local.json"}")
-    File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this))
-}
-
-@Synchronized
-fun <T> Local.read (f: (Local)->T): T {
-    return f(this)
-}
-
-fun <T> Local.write (f: (Local)->T): T {
-    var ret: T? = null
-    this.write_tst { ret=f(this) ; true }
-    return ret!!
-}
-
-@Synchronized
-fun Local.write_tst (f: (Local)->Boolean): Boolean {
-    val ret = f(this)
-    if (ret) {
-        this.save()
-        Local_cbs.forEach { it() }
+    @Synchronized
+    fun <T> read (f: (Local)->T): T {
+        return f(this.data!!)
     }
-    return ret
+
+    fun <T> write (f: (Local)->T): T {
+        var ret: T? = null
+        this.write_tst { ret=f(this.data!!) ; true }
+        return ret!!
+    }
+
+    @Synchronized
+    fun write_tst (f: (Local)->Boolean): Boolean {
+        val ret = f(this.data!!)
+        if (ret) {
+            this.save()
+            this.cbs.forEach { it() }
+        }
+        return ret
+    }
 }

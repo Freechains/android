@@ -89,8 +89,8 @@ class MainActivity : AppCompatActivity ()
         //println(">>> VERSION = $VERSION")
         fsRoot = applicationContext.filesDir.toString()
         //File(fsRoot!!, "/").deleteRecursively() ; error("OK")
-        Local_load()
-        Local_cbs.add {
+        LOCAL.load()
+        LOCAL.cbs.add {
             this.runOnUiThread {
                 this.adapters.forEach {
                     it.notifyDataSetChanged()
@@ -199,13 +199,10 @@ class MainActivity : AppCompatActivity ()
     ////////////////////////////////////////
 
     fun bg_reloadChains () : Wait {
-        val t = thread {
-            val names = main__(arrayOf("chains", "list")).let {
-                if (it.isEmpty()) emptyList() else it.split(' ')
-            }
-            names.map { this.bg_reloadChain(it) }.map { it() }
-        }
-        return { t.join() }
+        val ws = LOCAL
+            .read { it.chains.map { it.name } }
+            .map  { this.bg_reloadChain(it) }
+        return { ws.map { it() } }
     }
 
     fun bg_reloadChain (chain: String) : Wait {
@@ -215,7 +212,7 @@ class MainActivity : AppCompatActivity ()
             val blocks = main__(arrayOf("chain", chain, "traverse", "all", gen)).let {
                 if (it.isEmpty()) emptyList() else it.split(' ')
             }
-            LOCAL!!.write {
+            LOCAL.write {
                 it.chains
                     .first { it.name==chain }
                     .let {
@@ -238,7 +235,7 @@ class MainActivity : AppCompatActivity ()
                 val pass1 = view.findViewById<EditText>(R.id.edit_pass1).text.toString()
                 val pass2 = view.findViewById<EditText>(R.id.edit_pass2).text.toString()
                 if (!name.startsWith('$') || (pass1.length>=LEN10_shared && pass1==pass2)) {
-                    val size = LOCAL!!.read { it.ids.size }
+                    val size = LOCAL.read { it.ids.size }
                     thread {
                         this.bg_chains_join(name,pass1)
                     }
@@ -264,12 +261,13 @@ class MainActivity : AppCompatActivity ()
                 }
             main_(cmd).let { (ok, err) ->
                 if (ok) {
+                    LOCAL.write { it.chains += Chain(chain, emptyList(), emptyList()) }
                     this.bg_reloadChain(chain)()
                     this.runOnUiThread {
                         this.peers_sync(true)
                         Toast.makeText(
                             this.applicationContext,
-                            "Added chain $chain.",
+                            "Added chain ${chain.chain2id()}.",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -291,13 +289,14 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Leave $chain?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                thread {
-                    main_(arrayOf("chains", "leave", chain))
-                    this.bg_reloadChains()()
+                LOCAL.write {
+                    it.chains = it.chains.filter { it.name != chain }
                 }
+                thread { main_(arrayOf("chains", "leave", chain)) }
+                thread { this.bg_reloadChains() }
                 Toast.makeText(
                     this.applicationContext,
-                    "Left chain $chain.", Toast.LENGTH_LONG
+                    "Left chain ${chain.chain2id()}.", Toast.LENGTH_LONG
                 ).show()
             })
             .setNegativeButton(android.R.string.no, null).show()
@@ -324,7 +323,7 @@ class MainActivity : AppCompatActivity ()
     ////////////////////////////////////////
 
     fun bg_reloadPeers () : Wait {
-        val ws = LOCAL!!
+        val ws = LOCAL
             .read { it.peers.map { it.name } }
             .map { this.bg_reloadPeer(it) }
         return { ws.map { it() } }
@@ -338,7 +337,7 @@ class MainActivity : AppCompatActivity ()
             val chains = main__(arrayOf("peer", host, "chains")).let {
                 if (it.isEmpty()) emptyList() else it.split(' ')
             }
-            LOCAL!!.write {
+            LOCAL.write {
                 it.peers
                     .first { it.name==host }
                     .let {
@@ -360,7 +359,7 @@ class MainActivity : AppCompatActivity ()
             .setNegativeButton ("Cancel", null)
             .setPositiveButton("OK") { _,_ ->
                 val host = input.text.toString()
-                val ok = LOCAL!!.write_tst {
+                val ok = LOCAL.write_tst {
                     if (it.peers.none { it.name==host }) {
                         it.peers += Peer(host)
                         true
@@ -394,7 +393,7 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove peer $host?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.write {
+                LOCAL.write {
                     it.peers = it.peers.filter { it.name != host }
                 }
                 Toast.makeText(
@@ -406,8 +405,8 @@ class MainActivity : AppCompatActivity ()
     }
 
     fun peers_sync (showProgress: Boolean) {
-        val hosts  = LOCAL!!.read { it.peers  }
-        val chains = LOCAL!!.read { it.chains }
+        val hosts  = LOCAL.read { it.peers  }
+        val chains = LOCAL.read { it.chains }
 
         val progress = findViewById<ProgressBar>(R.id.progress)
         if (progress.max > 0) {
@@ -511,7 +510,7 @@ class MainActivity : AppCompatActivity ()
                 if (pass1.length>=LEN20_pubpbt && pass1==pass2) {
                     thread {
                         val pub = main__(arrayOf("crypto", "create", "pubpvt", pass1)).split(' ')[0]
-                        var ok = LOCAL!!.write {
+                        var ok = LOCAL.write {
                             if (it.ids.none { it.nick==nick || it.pub==pub }) {
                                 it.ids += Id(nick, pub)
                                 true
@@ -521,7 +520,7 @@ class MainActivity : AppCompatActivity ()
                         }
                         this.runOnUiThread {
                             val ret = if (ok) {
-                                this.bg_chains_join("@" + LOCAL!!.read { it.ids.first { it.nick == nick }.pub })
+                                this.bg_chains_join("@" + LOCAL.read { it.ids.first { it.nick == nick }.pub })
                                 "Added identity $nick."
                             } else {
                                 "Identity already exists."
@@ -549,7 +548,7 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove identity $nick?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.write {
+                LOCAL.write {
                     it.ids = it.ids.filter { it.nick != nick }
                 }
                 Toast.makeText(
@@ -572,7 +571,7 @@ class MainActivity : AppCompatActivity ()
                 val nick = view.findViewById<EditText>(R.id.edit_nick).text.toString()
                 val pub  = view.findViewById<EditText>(R.id.edit_pub) .text.toString()
 
-                val ok = LOCAL!!.write_tst {
+                val ok = LOCAL.write_tst {
                     if (it.cts.none { it.nick==nick || it.pub==pub }) {
                         it.cts += Id(nick, pub)
                         true
@@ -601,7 +600,7 @@ class MainActivity : AppCompatActivity ()
             .setTitle("Remove contact $nick?")
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setPositiveButton(android.R.string.yes, { _, _ ->
-                LOCAL!!.write {
+                LOCAL.write {
                     it.cts = it.cts.filter { it.nick != nick }
                 }
                 Toast.makeText(
