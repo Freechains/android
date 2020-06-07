@@ -15,7 +15,10 @@ import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import android.view.View
 import android.view.WindowManager
-import android.widget.*
+import android.widget.EditText
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.navigation.findNavController
@@ -63,7 +66,7 @@ const val LEN20_pubpbt = 20
 class MainActivity : AppCompatActivity ()
 {
     var isActive = true
-    val adapters: MutableSet<BaseExpandableListAdapter> = mutableSetOf()
+    val adapters: MutableSet<()->Unit> = mutableSetOf()
 
     override fun onPause()  { super.onPause()  ; this.isActive=false }
     override fun onResume() { super.onResume() ; this.isActive=true  }
@@ -90,11 +93,10 @@ class MainActivity : AppCompatActivity ()
         fsRoot = applicationContext.filesDir.toString()
         //File(fsRoot!!, "/").deleteRecursively() ; error("OK")
         LOCAL.load()
+        this.adapters.forEach { println("XXX") ; it() }
         LOCAL.cbs.add {
             this.runOnUiThread {
-                this.adapters.forEach {
-                    it.notifyDataSetChanged()
-                }
+                this.adapters.forEach { it() }
             }
         }
 

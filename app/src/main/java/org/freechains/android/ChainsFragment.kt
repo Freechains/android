@@ -13,17 +13,23 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class ChainsFragment : Fragment ()
 {
-    val outer = this
-    lateinit var main: MainActivity
+    private val outer = this
+    private lateinit var main: MainActivity
+
+    private var data: List<Chain> = LOCAL.read { it.chains }
+    private val cb = {
+        this.data = LOCAL.read { it.chains }
+        this.adapter.notifyDataSetChanged()
+    }
 
     override fun onDestroyView() {
-        this.main.adapters.remove(this.adapter)
+        this.main.adapters.remove(this.cb)
         super.onDestroyView()
     }
 
     override fun onCreateView (inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         this.main = this.activity as MainActivity
-        this.main.adapters.add(this.adapter)
+        this.main.adapters.add(this.cb)
         inflater.inflate(R.layout.frag_chains, container, false).let { view ->
             view.findViewById<ExpandableListView>(R.id.list).let {
                 it.setAdapter(this.adapter)
@@ -53,14 +59,14 @@ class ChainsFragment : Fragment ()
             return true
         }
         override fun getChild (i: Int, j: Int): Any? {
-            return LOCAL.read { it.chains[i].blocks[j] }
+            return outer.data[i].blocks[j]
         }
         override fun getChildId (i: Int, j: Int): Long {
             return i*10+j.toLong()
         }
         override fun getChildView (i: Int, j: Int, isLast: Boolean,
                                    convertView: View?, parent: ViewGroup?): View? {
-            val chain = LOCAL.read { it.chains[i] }
+            val chain = outer.data[i]
             val block = chain.blocks[j]
             val view = View.inflate(outer.main, android.R.layout.activity_list_item,null)
             view.findViewById<TextView>(android.R.id.text1).text = block.block2id()
@@ -75,20 +81,20 @@ class ChainsFragment : Fragment ()
             return view
         }
         override fun getChildrenCount (i: Int): Int {
-            return LOCAL.read { it.chains[i].blocks.size }
+            return outer.data[i].blocks.size
         }
         override fun getGroupCount(): Int {
-            return LOCAL.read { it.chains.size }
+            return outer.data.size
         }
         override fun getGroup (i: Int): Any {
-            return LOCAL.read { it.chains[i] }
+            return outer.data[i]
         }
         override fun getGroupId (i: Int): Long {
             return i.toLong()
         }
         override fun getGroupView (i: Int, isExpanded: Boolean, convertView: View?, parent: ViewGroup?): View? {
             val view = View.inflate(outer.main, R.layout.frag_chains_chain,null)
-            val chain = LOCAL.read { it.chains[i] }
+            val chain = outer.data[i]
             view.findViewById<TextView>(R.id.chain).text = chain.name.chain2id()
             view.findViewById<TextView>(R.id.heads).text = chain.heads
                 .map { it.block2id() }
