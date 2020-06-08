@@ -72,7 +72,11 @@ class PeersFragment : Fragment ()
                 view.findViewById<ImageButton>(R.id.add).let {
                     it.visibility = View.VISIBLE
                     it.setOnClickListener {
-                        outer.main.bg_chains_join(chain)
+                        if (chain.startsWith('$')) {
+                            outer.main.chains_join_ask(chain)
+                        } else {
+                            outer.main.bg_chains_join(chain)
+                        }
                     }
                 }
             }

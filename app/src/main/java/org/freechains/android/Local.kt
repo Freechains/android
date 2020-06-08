@@ -5,8 +5,10 @@ import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.HKey
+import org.freechains.common.main__
 import org.freechains.platform.fsRoot
 import java.io.File
+import kotlin.concurrent.thread
 
 typealias Wait = (() -> Unit)
 
@@ -19,26 +21,31 @@ fun String.pub2id () : String {
 }
 
 fun String.chain2id () : String {
-    if (this.startsWith('@')) {
-        val n = if (this.startsWith("@!")) 5 else 4
-        return this.take(n) + "..." + this.takeLast(3)
-    } else {
-        return this
+    return when {
+        this.startsWith('@') -> {
+            val n = if (this.startsWith("@!")) 5 else 4
+            this.take(n) + "..." + this.takeLast(3)
+        }
+        this.startsWith("\$bootstrap.") -> {
+            this.take("\$bootstrap.123".length) + "..." + this.takeLast(3)
+        }
+        else -> this
     }
 }
 
 @Serializable
 data class Peer (
     val name   : String,
-    var ping   : String = "?",
-    var chains : List<String> = emptyList()
+    var ping   : String = "?",              // x
+    var chains : List<String> = emptyList() // x
 )
 
 @Serializable
 data class Chain (
     val name   : String,
-    var heads  : List<String>,
-    var blocks : List<String>
+    val key    : HKey?,
+    var heads  : List<String>,              // x
+    var blocks : List<String>               // x
 )
 
 @Serializable
@@ -57,44 +64,55 @@ data class Local (
 )
 
 object LOCAL {
-    var data: Local? = null
+    var data: Local?  = null
+    var path: String? = null
     val cbs: MutableSet<()->Unit> = mutableSetOf()
 
+    @Synchronized
     fun load () {
-        val file = File(fsRoot!! + "/" + "local.json")
+        this.path = fsRoot!! + "/" + "local.json"
+        val file = File(this.path)
         if (!file.exists()) {
             this.data = Local(emptyList(), emptyList(), emptyList(), emptyList())
+            this.save(false)
         } else {
             @UseExperimental(UnstableDefault::class)
-            val json = Json(JsonConfiguration(prettyPrint=true))
-            this.data = json.parse(Local.serializer(), file.readText())
+            this.data = Json(JsonConfiguration(prettyPrint=true)).parse(Local.serializer(), file.readText())
         }
-        this.save()
     }
 
-    private fun save () {
+    private fun save (post: Boolean) {
         @UseExperimental(UnstableDefault::class)
-        val json = Json(JsonConfiguration(prettyPrint=true))
-        //println("will create ${fsRoot!! + "/" + "local.json"}")
-        File(fsRoot!! + "/" + "local.json").writeText(json.stringify(Local.serializer(), this.data!!))
+        File(this.path!!).writeText(Json(JsonConfiguration(prettyPrint=true)).stringify(Local.serializer(), this.data!!))
+        if (post) {
+            this.data!!.chains
+                .filter  { it.name.startsWith("\$bootstrap.") && it.heads.isNotEmpty() && !it.heads.first().startsWith("0_") }
+                .forEach {
+                    thread {
+                        main__(arrayOf("chain", it.name, "post", "file", this.path!!))
+                    }
+                }
+        }
     }
 
     @Synchronized
-    fun <T> read (f: (Local)->T): T {
+    fun <T> read (f: (Local)->T) : T {
         return f(this.data!!)
     }
 
-    fun <T> write (f: (Local)->T): T {
-        var ret: T? = null
-        this.write_tst { ret=f(this.data!!) ; true }
-        return ret!!
+    @Synchronized
+    fun <T> write (post: Boolean, f: (Local)->T) : T {
+        var ret = f(this.data!!)
+        this.save(post)
+        this.cbs.forEach { it() }
+        return ret
     }
 
     @Synchronized
-    fun write_tst (f: (Local)->Boolean): Boolean {
+    fun write_tst (post: Boolean, f: (Local)->Boolean) : Boolean {
         val ret = f(this.data!!)
         if (ret) {
-            this.save()
+            this.save(post)
             this.cbs.forEach { it() }
         }
         return ret
